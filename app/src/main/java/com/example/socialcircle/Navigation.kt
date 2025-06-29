@@ -4,16 +4,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.socialcircle.screens.ForgotPasswordScreen
 import com.example.socialcircle.screens.LoadingScreen
 import com.example.socialcircle.screens.LoginScreen
 import com.example.socialcircle.screens.MainAppScreen
+import com.example.socialcircle.screens.ProfileCreationScreen
+import com.example.socialcircle.screens.VerificationScreen
 
 sealed class Screen(val route: String) {
     object Loading : Screen("loading")
     object Login : Screen("login")
+    object Verification : Screen("verification")
+    object ForgotPassword : Screen("forgotPassword")
+    object ProfileCreation : Screen("profileCreation")
     object Main : Screen("main")
     object Chat : Screen("chat")
     object Discover : Screen("discover")
@@ -23,6 +30,7 @@ sealed class Screen(val route: String) {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val viewModel: AuthenticationViewModel = viewModel()
 
     val isLoaded by remember { mutableStateOf(false) }
     val isLogin by remember { mutableStateOf(false) }
@@ -50,17 +58,23 @@ fun AppNavigation() {
         }
 
         composable(Screen.Login.route) {
-            LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
-                    }
-                }
-            )
+            LoginScreen(viewModel, navController)
         }
 
         composable(Screen.Main.route) {
             MainAppScreen()
+        }
+
+        composable(Screen.Verification.route){
+            VerificationScreen(viewModel, navController)
+        }
+
+        composable(Screen.ForgotPassword.route){
+            ForgotPasswordScreen(viewModel, navController)
+        }
+
+        composable(Screen.ProfileCreation.route){
+            ProfileCreationScreen(navController)
         }
     }
 }
