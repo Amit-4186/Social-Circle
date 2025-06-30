@@ -1,17 +1,16 @@
 package com.example.socialcircle
 
-import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.PhoneAuthCredential
-import com.google.firebase.auth.PhoneAuthOptions
-import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
 
 class AuthenticationViewModel : ViewModel() {
 
@@ -19,9 +18,6 @@ class AuthenticationViewModel : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthResultState>(AuthResultState.Idle)
     val authState: StateFlow<AuthResultState> = _authState
-
-    private var storedVerificationId: String? = null
-    private var resendToken: PhoneAuthProvider.ForceResendingToken? = null
 
     fun signupWithEmail(email: String, password: String) {
         viewModelScope.launch {
@@ -38,17 +34,39 @@ class AuthenticationViewModel : ViewModel() {
                                 }
                             }
                     } else {
-                        _authState.value = AuthResultState.Error(task.exception?.message)
+                        val exception = task.exception
+                        val message = when (exception) {
+                            is FirebaseAuthWeakPasswordException -> "Weak Password"
+                            is FirebaseAuthInvalidCredentialsException -> "Invalid Email"
+                            is FirebaseAuthUserCollisionException -> "Email already in use. Please Login!"
+                            else -> exception?.localizedMessage ?: "Unknown Error"
+                        }
+                        _authState.value = AuthResultState.Error(message)
                     }
                 }
         }
     }
 
-    fun checkEmailVerification() {
-        auth.currentUser?.reload()?.addOnCompleteListener {
-            val verified = auth.currentUser?.isEmailVerified == true
-            _authState.value = if (verified) AuthResultState.EmailVerified
-            else AuthResultState.EmailNotVerified
+    fun loginWithEmail(email: String, password: String) {
+        viewModelScope.launch {
+            auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        if (auth.currentUser?.isEmailVerified == true) {
+                            _authState.value = AuthResultState.Success("Login Successful")
+                        } else {
+                            resendVerificationEmail()
+                        }
+                    } else {
+                        val exception = task.exception
+                        val message = when (exception) {
+                            is FirebaseAuthInvalidUserException -> "No account found with this email"
+                            is FirebaseAuthInvalidCredentialsException -> "Incorrect password"
+                            else -> exception?.localizedMessage ?: "Login failed"
+                        }
+                        _authState.value = AuthResultState.Error(message)
+                    }
+                }
         }
     }
 
@@ -60,7 +78,9 @@ class AuthenticationViewModel : ViewModel() {
                     _authState.value = if (task.isSuccessful) {
                         AuthResultState.VerificationEmailSent
                     } else {
-                        AuthResultState.Error(task.exception?.message)
+                        val exception = task.exception
+                        val message = exception?.localizedMessage ?: "Failed to resend verification email"
+                        AuthResultState.Error(message)
                     }
                 }
         } else {
@@ -68,96 +88,49 @@ class AuthenticationViewModel : ViewModel() {
         }
     }
 
-    fun loginWithEmail(email: String, password: String) {
-        viewModelScope.launch {
-            auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener {
-                    if (it.isSuccessful) {
-                        if (auth.currentUser?.isEmailVerified == true) {
-                            _authState.value = AuthResultState.Success("Login Success")
-                        } else {
-                            _authState.value = AuthResultState.EmailNotVerified
-                        }
-                    } else {
-                        _authState.value = AuthResultState.Error(it.exception?.message)
-                    }
-                }
+    fun checkEmailVerification() {
+        auth.currentUser?.reload()?.addOnCompleteListener {
+            val verified = auth.currentUser?.isEmailVerified == true
+            _authState.value = if (verified) AuthResultState.EmailVerified
+            else AuthResultState.EmailNotVerified
         }
-    }
-
-    fun startPhoneNumberVerification(phoneNumber: String, activity: Activity) {
-        val options = PhoneAuthOptions.newBuilder(auth)
-            .setPhoneNumber(phoneNumber)
-            .setTimeout(60L, TimeUnit.SECONDS)
-            .setActivity(activity)
-            .setCallbacks(phoneAuthCallbacks)
-            .build()
-        PhoneAuthProvider.verifyPhoneNumber(options)
-    }
-
-    private val phoneAuthCallbacks =
-        object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                signInWithPhoneCredential(credential)
-            }
-
-            override fun onVerificationFailed(e: FirebaseException) {
-                _authState.value = AuthResultState.Error(e.message)
-            }
-
-            override fun onCodeSent(
-                verificationId: String,
-                token: PhoneAuthProvider.ForceResendingToken
-            ) {
-                storedVerificationId = verificationId
-                resendToken = token
-                _authState.value = AuthResultState.CodeSent
-            }
-        }
-
-    fun verifyOtpCode(code: String) {
-        val credential = storedVerificationId?.let {
-            PhoneAuthProvider.getCredential(it, code)
-        }
-        credential?.let {
-            signInWithPhoneCredential(it)
-        } ?: run {
-            _authState.value = AuthResultState.Error("Invalid verification ID")
-        }
-    }
-
-    private fun signInWithPhoneCredential(credential: PhoneAuthCredential) {
-        auth.signInWithCredential(credential)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    _authState.value = AuthResultState.Success("Phone Auth Success")
-                } else {
-                    _authState.value = AuthResultState.Error(task.exception?.message)
-                }
-            }
     }
 
     fun forgotPassword(email: String) {
         viewModelScope.launch {
             auth.sendPasswordResetEmail(email)
-                .addOnCompleteListener {
-                    _authState.value =
-                        if (it.isSuccessful) AuthResultState.Success("Reset Link Sent")
-                        else AuthResultState.Error(it.exception?.message)
+                .addOnCompleteListener { task ->
+                    _authState.value = if (task.isSuccessful) {
+                        AuthResultState.Success("Reset Link Sent")
+                    } else {
+                        val exception = task.exception
+                        val message = when (exception) {
+                            is FirebaseAuthInvalidUserException -> "No account found with this email"
+                            else -> exception?.localizedMessage ?: "Failed to send reset email"
+                        }
+                        AuthResultState.Error(message)
+                    }
                 }
         }
     }
 
     fun changePassword(newPassword: String) {
         val user = auth.currentUser
-        user?.let {
-            it.updatePassword(newPassword)
+        if (user != null) {
+            user.updatePassword(newPassword)
                 .addOnCompleteListener { task ->
-                    _authState.value =
-                        if (task.isSuccessful) AuthResultState.Success("Password Updated")
-                        else AuthResultState.Error(task.exception?.message)
+                    _authState.value = if (task.isSuccessful) {
+                        AuthResultState.Success("Password Updated")
+                    } else {
+                        val exception = task.exception
+                        val message = when (exception) {
+                            is FirebaseAuthRecentLoginRequiredException -> "Please re-authenticate before changing password"
+                            else -> exception?.localizedMessage ?: "Failed to update password"
+                        }
+                        AuthResultState.Error(message)
+                    }
                 }
-        } ?: run {
+        } else {
             _authState.value = AuthResultState.Error("No user logged in")
         }
     }
@@ -176,5 +149,4 @@ sealed class AuthResultState {
     object VerificationEmailSent : AuthResultState()
     object EmailVerified: AuthResultState()
     object EmailNotVerified : AuthResultState()
-    object CodeSent : AuthResultState()
 }

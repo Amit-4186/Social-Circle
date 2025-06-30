@@ -27,9 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.socialcircle.AuthResultState
 import com.example.socialcircle.AuthenticationViewModel
@@ -46,7 +44,9 @@ fun LoginScreen(viewModel: AuthenticationViewModel, navController: NavController
     var isLoginMode by remember { mutableStateOf(true) }
 
     LaunchedEffect(authState) {
+
         when (authState) {
+
             is AuthResultState.Success -> {
                 Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
                 navController.navigate(Screen.Main.route) {
@@ -54,17 +54,7 @@ fun LoginScreen(viewModel: AuthenticationViewModel, navController: NavController
                 }
             }
 
-            is AuthResultState.Error -> {
-                Toast.makeText(context, (authState as AuthResultState.Error).error, Toast.LENGTH_SHORT).show()
-            }
-
-//            AuthResultState.EmailVerified -> {
-//                navController.navigate(Screen.Main.route){
-//                    popUpTo(0) { inclusive= true }
-//                }
-//            }
-
-            AuthResultState.EmailNotVerified -> {
+            is AuthResultState.VerificationEmailSent -> {
                 navController.navigate(Screen.Verification.route)
             }
 
@@ -125,25 +115,20 @@ fun LoginScreen(viewModel: AuthenticationViewModel, navController: NavController
                     if (email.isNotBlank() && password.isNotBlank()) {
                         viewModel.loginWithEmail(email, password)
                     } else {
-                        Toast.makeText(
-                            context,
-                            "Please enter email and/or password",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        Toast.makeText(context, "Please enter email and/or password", Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     if (email.isNotBlank() && password.isNotBlank()) {
                         if (password == confirmPassword) {
                             viewModel.signupWithEmail(email, password)
-                            Toast.makeText(context, "Verification email sent", Toast.LENGTH_SHORT).show()
-                            navController.navigate(Screen.Verification.route)
+//                            Toast.makeText(context, "Verification Email sent", Toast.LENGTH_SHORT).show()
                         } else {
-                            Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Passwords do not match!", Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         Toast.makeText(
                             context,
-                            "Please enter email and/or password",
+                            "Please enter Email and/or Password!",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -174,28 +159,12 @@ fun LoginScreen(viewModel: AuthenticationViewModel, navController: NavController
         Spacer(modifier = Modifier.height(16.dp))
 
         when (authState) {
-            is AuthResultState.Success -> Text((authState as AuthResultState.Success).message)
-            is AuthResultState.Error -> Text(
-                (authState as AuthResultState.Error).error ?: "An error occurred",
-                color = MaterialTheme.colorScheme.error
-            )
 
-//            AuthResultState.VerificationEmailSent -> Text("Check your inbox for a verification link.")
-//            AuthResultState.EmailNotVerified -> {
-//                Text(text = "Email not verified. Please verify to continue.", textAlign = TextAlign.Center , modifier = Modifier.fillMaxWidth())
-//
-//                Button(onClick = { viewModel.checkEmailVerification() }) {
-//                    Text("Check Verification Status")
-//                }
-//
-//                Spacer(Modifier.height(8.dp))
-//
-//                TextButton(onClick = { viewModel.resendVerificationEmail() }) {
-//                    Text("Resend Verification Email")
-//                }
-//            }
+            is AuthResultState.Error -> {
+                val error = (authState as AuthResultState.Error).error
+                Text(error ?: "Unknown Error", color = MaterialTheme.colorScheme.error)
+            }
 
-//            AuthResultState.EmailVerified -> Text("Email verified! You can now log in.")
             else -> {}
         }
     }

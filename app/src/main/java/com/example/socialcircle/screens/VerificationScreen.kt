@@ -1,5 +1,6 @@
 package com.example.socialcircle.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.socialcircle.AuthResultState
@@ -30,6 +32,7 @@ import com.example.socialcircle.Screen
 @Composable
 fun VerificationScreen(viewModel: AuthenticationViewModel, navController: NavController) {
     val authState by viewModel.authState.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(authState) {
         when (authState) {
@@ -37,6 +40,14 @@ fun VerificationScreen(viewModel: AuthenticationViewModel, navController: NavCon
                 navController.navigate(Screen.ProfileCreation.route) {
                     popUpTo(0) { inclusive = true }
                 }
+            }
+
+            AuthResultState.EmailNotVerified -> {
+                Toast.makeText(context, "Email not verified", Toast.LENGTH_SHORT).show()
+            }
+
+            AuthResultState.VerificationEmailSent -> {
+                Toast.makeText(context, "Verification email sent", Toast.LENGTH_SHORT).show()
             }
 
             else -> {}
@@ -76,11 +87,11 @@ fun VerificationScreen(viewModel: AuthenticationViewModel, navController: NavCon
             Spacer(Modifier.height(8.dp))
 
             when(authState){
-                is AuthResultState.Error -> Text(
-                    (authState as AuthResultState.Error).error ?: "An error occurred",
-                    color = MaterialTheme.colorScheme.error
-                )
-                AuthResultState.VerificationEmailSent -> Text("(Check your inbox for a verification link.)")
+                is AuthResultState.Error -> {
+                    val error = (authState as AuthResultState.Error).error
+                    Text(error ?: "Unknown Error", color = MaterialTheme.colorScheme.error)
+                }
+                AuthResultState.VerificationEmailSent -> Text("(Check your Inbox)")
                 else -> {}
             }
         }
