@@ -29,9 +29,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.socialcircle.AuthResultState
-import com.example.socialcircle.AuthenticationViewModel
 import com.example.socialcircle.Screen
+import com.example.socialcircle.viewModels.AuthResultState
+import com.example.socialcircle.viewModels.AuthenticationViewModel
 
 @Composable
 fun LoginScreen(viewModel: AuthenticationViewModel, navController: NavController) {

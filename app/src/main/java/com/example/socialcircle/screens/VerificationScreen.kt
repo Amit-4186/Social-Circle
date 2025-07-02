@@ -25,8 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.socialcircle.AuthResultState
-import com.example.socialcircle.AuthenticationViewModel
+import com.example.socialcircle.viewModels.AuthResultState
+import com.example.socialcircle.viewModels.AuthenticationViewModel
 import com.example.socialcircle.Screen
 
 @Composable
@@ -37,7 +37,7 @@ fun VerificationScreen(viewModel: AuthenticationViewModel, navController: NavCon
     LaunchedEffect(authState) {
         when (authState) {
             AuthResultState.EmailVerified -> {
-                navController.navigate(Screen.ProfileCreation.route) {
+                navController.navigate(Screen.ProfileSetup.route){   //Screen.ProfileCreation.route) {
                     popUpTo(0) { inclusive = true }
                 }
             }

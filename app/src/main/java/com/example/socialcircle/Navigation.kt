@@ -13,7 +13,9 @@ import com.example.socialcircle.screens.LoadingScreen
 import com.example.socialcircle.screens.LoginScreen
 import com.example.socialcircle.screens.MainAppScreen
 import com.example.socialcircle.screens.ProfileCreationScreen
+import com.example.socialcircle.screens.ProfileSetupScreen
 import com.example.socialcircle.screens.VerificationScreen
+import com.example.socialcircle.viewModels.AuthenticationViewModel
 
 sealed class Screen(val route: String) {
     object Loading : Screen("loading")
@@ -25,6 +27,7 @@ sealed class Screen(val route: String) {
     object Chat : Screen("chat")
     object Discover : Screen("discover")
     object Profile : Screen("profile")
+    object ProfileSetup: Screen(route = "profileSetup")
 }
 
 @Composable
@@ -37,7 +40,7 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Loading.route
+        startDestination = Screen.Loading.route //Screen.ProfileSetup.route
     ) {
 
         fun loadingComplete() {
@@ -75,6 +78,10 @@ fun AppNavigation() {
 
         composable(Screen.ProfileCreation.route){
             ProfileCreationScreen(navController)
+        }
+
+        composable(Screen.ProfileSetup.route){
+            ProfileSetupScreen()
         }
     }
 }

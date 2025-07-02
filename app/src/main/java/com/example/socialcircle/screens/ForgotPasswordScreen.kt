@@ -23,7 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.socialcircle.AuthenticationViewModel
+import com.example.socialcircle.viewModels.AuthenticationViewModel
 
 @Composable
 fun ForgotPasswordScreen(viewModel: AuthenticationViewModel, navController: NavController) {

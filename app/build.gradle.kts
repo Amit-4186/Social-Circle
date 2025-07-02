@@ -56,6 +56,9 @@ dependencies {
     implementation(libs.androidx.material)
     implementation(libs.androidx.material.icons.extended)
 
+    implementation("androidx.savedstate:savedstate:1.3.0")
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

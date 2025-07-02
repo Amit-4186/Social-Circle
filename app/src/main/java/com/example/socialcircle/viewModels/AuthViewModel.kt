@@ -1,4 +1,4 @@
-package com.example.socialcircle
+package com.example.socialcircle.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
