@@ -50,6 +50,12 @@ dependencies {
     implementation(libs.firebase.analytics)
     //Location Dependency
     implementation(libs.play.services.location)
+    implementation(libs.accompanist.permissions)
+
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
+
     //Navigation Dependency
     implementation(libs.androidx.navigation.compose)
     //Material Dependency

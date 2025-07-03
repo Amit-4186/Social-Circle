@@ -11,7 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.socialcircle.screens.ForgotPasswordScreen
 import com.example.socialcircle.screens.LoadingScreen
 import com.example.socialcircle.screens.LoginScreen
-import com.example.socialcircle.screens.MainAppScreen
+import com.example.socialcircle.screens.MainScreen
 import com.example.socialcircle.screens.ProfileCreationScreen
 import com.example.socialcircle.screens.ProfileSetupScreen
 import com.example.socialcircle.screens.VerificationScreen
@@ -40,7 +40,7 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.ProfileSetup.route //Screen.Loading.route
+        startDestination = Screen.Loading.route //Screen.Loading.route
     ) {
 
         fun loadingComplete() {
@@ -65,7 +65,7 @@ fun AppNavigation() {
         }
 
         composable(Screen.Main.route) {
-            MainAppScreen()
+            MainScreen()
         }
 
         composable(Screen.Verification.route){
