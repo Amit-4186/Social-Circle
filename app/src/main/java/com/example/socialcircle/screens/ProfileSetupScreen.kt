@@ -124,8 +124,10 @@ fun ProfileSetupScreen(viewModel: ProfileViewModel = viewModel()){
             currentStep.subtitle,
             currentStep.entry
         ){data->
+            var isNext = true
             if(data == ""){
                 Toast.makeText(context, "Please fill the entry.", Toast.LENGTH_SHORT).show()
+                isNext = false
             }
             else {
                 when (currentStep) {
@@ -137,23 +139,41 @@ fun ProfileSetupScreen(viewModel: ProfileViewModel = viewModel()){
                     }
 
                     DetailScreens.Name -> viewModel.updateName(data)
-                    DetailScreens.PhoneNo -> viewModel.updatePhoneNumber(data)
+                    DetailScreens.PhoneNo ->{
+                        if(!viewModel.updatePhoneNumber(data)){
+                            Toast.makeText(context, "Phone no is incorrect", Toast.LENGTH_SHORT).show()
+                            isNext = false
+                        }
+                    }
                     DetailScreens.ProfilePic -> {
                         Log.d("mine", "profile")
                         viewModel.profilePic = data.toUri()
                         viewModel.uploadOnFireStore()
                     }
 
-                    DetailScreens.UserName -> viewModel.updateUsername(data)
+                    DetailScreens.UserName -> {
+                        isNext = false
+                        viewModel.checkIfUsernameExists(data){ isExist->
+                            if(isExist){
+                                Toast.makeText(context, "Username already exists.", Toast.LENGTH_SHORT).show()
+                            }
+                            else{
+                                viewModel.updateUsername(data)
+                                currentStepIndex++
+                            }
+                        }
+                    }
                 }
-                if (currentStepIndex < DetailScreens.steps.size - 1) {
-                    currentStepIndex++
-                }
-                Log.d("mine", "$user")
             }
+            if (isNext && currentStepIndex < DetailScreens.steps.size - 1) {
+                currentStepIndex++
+            }
+            Log.d("mine", "$user")
         }
     }
 }
+
+
 
 @Composable
 private fun DetailEntry(
@@ -164,7 +184,6 @@ private fun DetailEntry(
     entry: String = "",
     onNextClick: (String)->Unit
 ) {
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -232,7 +251,12 @@ private fun DetailEntry(
                         painterResource(R.drawable.profile) // Make sure you have 'profile.png' or similar in drawable
                     },
                     "",
-                    Modifier.fillMaxWidth().padding(horizontal = 24.dp).clip(CircleShape).border(2.dp, Color.Gray, CircleShape).aspectRatio(1f),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, Color.Gray, CircleShape)
+                        .aspectRatio(1f),
                     contentScale = ContentScale.Crop
                 )
 
@@ -272,7 +296,7 @@ private fun DetailEntry(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(24.dp),
         ) {
             Text("Next")
         }

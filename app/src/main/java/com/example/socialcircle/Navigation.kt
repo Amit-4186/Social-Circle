@@ -40,7 +40,7 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Loading.route //Screen.ProfileSetup.route
+        startDestination = Screen.ProfileSetup.route //Screen.Loading.route
     ) {
 
         fun loadingComplete() {

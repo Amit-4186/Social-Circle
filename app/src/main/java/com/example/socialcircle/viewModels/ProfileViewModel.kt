@@ -23,8 +23,14 @@ class ProfileViewModel: ViewModel(){
     lateinit var profilePic: Uri
     val user = _user.asStateFlow()
 
-    fun updatePhoneNumber(phone: String) {
-        _user.value = _user.value.copy(phoneNumber = phone)
+    fun updatePhoneNumber(phone: String): Boolean {
+        if(phone.matches(Regex("^(\\+91)?[6-9]\\d{9}$"))) {
+            _user.value = _user.value.copy(phoneNumber = phone)
+            return true
+        }
+        else {
+            return false
+        }
     }
 
     fun updateName(name: String) {
@@ -47,6 +53,19 @@ class ProfileViewModel: ViewModel(){
         pathRef.delete()
     }
 
+    fun checkIfUsernameExists(
+        username: String,
+        onResult: (Boolean) -> Unit
+    ) {
+        db.collection("UserNames").document(username).get()
+            .addOnSuccessListener { document ->
+                onResult(document.exists())
+            }
+            .addOnFailureListener {
+                onResult(false) // or handle error
+            }
+    }
+
     fun uploadOnFireStore(){
         val pathRef = storageRef.child("Profile_Pictures/${generateUniqueImageName()}")
 
@@ -59,6 +78,8 @@ class ProfileViewModel: ViewModel(){
                             .add(_user.value)
                             .addOnSuccessListener { documentReference ->
                                 Log.d("mine", "document added with id $documentReference")
+                                db.collection("UserNames").document(_user.value.userName)
+                                    .set(mapOf("userId" to documentReference.id))
                             }
                             .addOnFailureListener { e ->
                                 Log.d("mine", "error in uploading", e)
