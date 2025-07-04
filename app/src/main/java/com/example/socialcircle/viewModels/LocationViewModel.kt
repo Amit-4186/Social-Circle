@@ -1,4 +1,4 @@
-package com.example.socialcircle.screens
+package com.example.socialcircle.viewModels
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -49,9 +49,6 @@ class LocationViewModel(
     private val _nearbyUsers = MutableStateFlow<List<String>>(emptyList())
     val nearbyUsers: StateFlow<List<String>> = _nearbyUsers
 
-    private val _locationUpdateCount = MutableStateFlow(0)
-    val locationUpdateCount: StateFlow<Int> = _locationUpdateCount
-
     private var locationUpdatesStarted = false
 
     fun publishLocation(uid: String, location: Location) {
@@ -71,12 +68,12 @@ class LocationViewModel(
     init {
         viewModelScope.launch {
             // initial delay to wait for first location
-            delay(5_000)
+//            delay(5_000)
             while (isActive) {
                 lastLocation.value?.let { loc ->
                     refreshNearby(loc)
                 }
-                delay(5 * 60 * 1000L)
+                delay(10 * 60 * 1000L) // updated after 10 minutes
             }
         }
     }
@@ -116,7 +113,6 @@ class LocationViewModel(
                 publishLocation(uid!!, it) // pushing location on firestore
             }
             _lastLocation.value = result.lastLocation //temporary
-            _locationUpdateCount.value += 1 //temporary
         }
     }
 

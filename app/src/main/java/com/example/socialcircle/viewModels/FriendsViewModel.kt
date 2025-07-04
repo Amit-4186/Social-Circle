@@ -9,9 +9,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
+import java.sql.Timestamp
+import java.time.LocalTime
 import kotlin.collections.chunked
 
-class FriendsViewModel: ViewModel() {
+class FriendsViewModel : ViewModel() {
 
     private val db = Firebase.firestore
     private val user = FirebaseAuth.getInstance().currentUser!!
@@ -21,38 +23,49 @@ class FriendsViewModel: ViewModel() {
     val friendList = _friendList
     val requestList = _requestList
 
-    fun getFriendProfiles(){
-        fetchFriendIds { idList->
+    fun getFriendProfiles() {
+        fetchFriendIds { idList ->
             fetchFriendsProfiles(idList)
         }
     }
 
-    fun getFriendRequests(){
+    fun getFriendRequests() {
         Log.d("mine", "get Friend Request List")
-        fetchFriendRequestIds { idList->
+        fetchFriendRequestIds { idList ->
             Log.d("mine", "id: $idList")
             fetchRequestProfiles(idList)
         }
     }
 
 
-    fun sentFriendRequest(uid: String, onSuccess: ()->Unit, onFailure: (e: Exception)->Unit){
+    fun sentFriendRequest(
+        toUserId: String,
+        onSuccess: () -> Unit,
+        onFailure: (e: Exception) -> Unit
+    ) {
         db.collection("FriendRequests")
-            .add(RequestModel(fromUserid = user.uid, toUserId = uid))
-            .addOnSuccessListener{
+            .add(
+                RequestModel(
+                    fromUserid = user.uid,
+                    toUserId = toUserId,
+                    Timestamp(System.currentTimeMillis())
+                ),
+            )
+            .addOnSuccessListener {
                 onSuccess()
             }
-            .addOnFailureListener { e->
+            .addOnFailureListener { e ->
                 onFailure(e)
             }
     }
 
 
-    private fun fetchFriendIds(onResult: (List<String>)->Unit){
+    private fun fetchFriendIds(onResult: (List<String>) -> Unit) {
         db.collection("UserProfiles").document(user.uid).collection("Friends")
             .get()
             .addOnSuccessListener { snapshot ->
-                val friendIds = snapshot.documents.mapNotNull {doc-> doc.getString("userId")}  // Gives you the list of ids
+                val friendIds =
+                    snapshot.documents.mapNotNull { doc -> doc.getString("userId") }  // Gives you the list of ids
                 onResult(friendIds)
             }
     }
@@ -70,7 +83,7 @@ class FriendsViewModel: ViewModel() {
 
         for (chunk in chunks) {
             db.collection("UserProfiles")
-                .whereIn(FieldPath.documentId(), chunk) //
+                .whereIn(FieldPath.documentId(), chunk)
                 .get()
                 .addOnSuccessListener { result ->
                     val users = result.documents.mapNotNull { doc ->
@@ -84,7 +97,7 @@ class FriendsViewModel: ViewModel() {
                         _friendList.value = tempList
                     }
                 }
-                .addOnFailureListener {e->
+                .addOnFailureListener { e ->
                     Log.e("mine", "failed: ${e.message}")
                     completedChunks++
                     if (completedChunks == totalChunks) {
@@ -94,22 +107,22 @@ class FriendsViewModel: ViewModel() {
         }
     }
 
-    private fun fetchFriendRequestIds(onResult: (List<String>)->Unit){
+    private fun fetchFriendRequestIds(onResult: (List<String>) -> Unit) {
         db.collection("FriendRequests")
             .whereEqualTo("toUserId", user.uid)
             .get()
-            .addOnSuccessListener {document->
-                val result = document.mapNotNull {doc->
+            .addOnSuccessListener { document ->
+                val result = document.mapNotNull { doc ->
                     doc.getString("fromUserId")
                 }
                 onResult(result)
             }
-            .addOnFailureListener {e->
+            .addOnFailureListener { e ->
                 Log.d("mine", "failed to fetch requests ${e.message}")
             }
     }
 
-    private fun fetchRequestProfiles(requestIds: List<String>){
+    private fun fetchRequestProfiles(requestIds: List<String>) {
         if (requestIds.isEmpty()) {
             _friendList.value = emptyList()
             return
@@ -136,7 +149,7 @@ class FriendsViewModel: ViewModel() {
                         _requestList.value = tempList
                     }
                 }
-                .addOnFailureListener {e->
+                .addOnFailureListener { e ->
                     Log.e("mine", "failed: ${e.message}")
                     completedChunks++
                     if (completedChunks == totalChunks) {
@@ -146,4 +159,53 @@ class FriendsViewModel: ViewModel() {
         }
     }
 
+    fun acceptFriendRequest(fromUserId: String) {
+        db.collection("FriendRequests")
+            .whereEqualTo("fromUserId", fromUserId)
+            .whereEqualTo("toUserId", user.uid)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                if (querySnapshot.isEmpty) return@addOnSuccessListener
+
+                val docId = querySnapshot.documents.first().id
+
+                db.collection("FriendRequests").document(docId).delete()
+                    .addOnSuccessListener {
+                        // Add both users to each other's friends list
+                        val currentUserRef = db.collection("UserProfiles").document(user.uid)
+                            .collection("Friends").document(fromUserId)
+                        val otherUserRef = db.collection("UserProfiles").document(fromUserId)
+                            .collection("Friends").document(user.uid)
+
+                        val data = mapOf("userId" to fromUserId)
+                        val reverseData = mapOf("userId" to user.uid)
+
+                        currentUserRef.set(data)
+                            .continueWithTask {
+                                otherUserRef.set(reverseData)
+                            }
+                            .addOnSuccessListener {
+                                getFriendProfiles()
+                                getFriendRequests()
+                            }
+                    }
+            }
+    }
+
+    fun rejectFriendRequest(fromUserId: String) {
+        db.collection("FriendRequests")
+            .whereEqualTo("fromUserId", fromUserId)
+            .whereEqualTo("toUserId", user.uid)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                if (querySnapshot.isEmpty) return@addOnSuccessListener
+
+                val docId = querySnapshot.documents.first().id
+
+                db.collection("FriendRequests").document(docId).delete()
+                    .addOnSuccessListener {
+                        getFriendRequests()
+                    }
+            }
+    }
 }

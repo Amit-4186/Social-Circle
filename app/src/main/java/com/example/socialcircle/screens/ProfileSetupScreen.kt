@@ -92,10 +92,10 @@ private sealed class DetailScreens(val title: String, val subtitle: String, val 
 }
 
 
-//@Preview(showBackground = true)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileSetupScreen(navController: NavController, viewModel: ProfileViewModel = viewModel()){
+fun ProfileSetupScreen(navController: NavController){
+    val viewModel: ProfileViewModel = viewModel()
     val context = LocalContext.current
     var currentStepIndex by remember { mutableIntStateOf(0) }
     val currentStep = DetailScreens.steps[currentStepIndex]

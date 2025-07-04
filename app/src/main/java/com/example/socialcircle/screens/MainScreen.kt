@@ -29,6 +29,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.socialcircle.Screen
+import com.example.socialcircle.viewModels.FriendsViewModel
+import com.example.socialcircle.viewModels.LocationViewModel
+import com.example.socialcircle.viewModels.LocationViewModelFactory
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.delay
@@ -37,10 +40,12 @@ import kotlinx.coroutines.delay
 fun MainScreen() {
     val uid = Firebase.auth.uid
 
-    val tabs = listOf(Screen.Chat, Screen.Discover, Screen.Profile)
-    var currentRoute by remember { mutableStateOf(Screen.Discover.route) }
     val context = LocalContext.current
     val viewModel: LocationViewModel = viewModel(factory = LocationViewModelFactory(context))
+    val friendsViewModel: FriendsViewModel = viewModel()
+
+    val tabs = listOf(Screen.Discover, Screen.Chat, Screen.Friend, Screen.Profile)
+    var currentRoute by remember { mutableStateOf(Screen.Friend.route) }
 
     var hasPermission by remember {
         mutableStateOf(
@@ -89,9 +94,10 @@ fun MainScreen() {
                     NavigationBarItem(
                         icon = {
                             when (screen.route) {
-                                "chat" -> Icon(Icons.Filled.ChatBubble, "Chat")
-                                "discover" -> Icon(Icons.Filled.People, "Discover")
-                                "profile" -> Icon(Icons.Filled.Person, "Profile")
+                                Screen.Discover.route -> Icon(Icons.Filled.People, "Discover")
+                                Screen.Chat.route -> Icon(Icons.Filled.ChatBubble, "Chat")
+                                Screen.Friend.route -> Icon(Icons.Filled.People, "Friend")
+                                Screen.Profile.route -> Icon(Icons.Filled.Person, "Profile")
                             }
                         },
                         label = { Text(screen.route.replaceFirstChar { it.uppercase() }) },
@@ -116,11 +122,14 @@ fun MainScreen() {
                         }
                     },
                     lastLocation = viewModel.lastLocation.collectAsState().value,
-                    locationUpdateCount = viewModel.locationUpdateCount.collectAsState().value,
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    onSendChat = { TODO() },
+                    onFriendRequest = { uid -> friendsViewModel.sentFriendRequest(uid, {TODO()}, {TODO()}) }
                 )
 
                 Screen.Chat.route -> ChatScreen()
+
+                Screen.Friend.route -> FriendScreen(viewModel = friendsViewModel)
 
                 Screen.Profile.route -> ProfileScreen()
             }

@@ -9,41 +9,34 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.socialcircle.screens.ForgotPasswordScreen
-import com.example.socialcircle.screens.FriendListScreen
-import com.example.socialcircle.screens.FriendsRequestScreen
 import com.example.socialcircle.screens.LoginScreen
 import com.example.socialcircle.screens.MainScreen
-import com.example.socialcircle.screens.ProfileCreationScreen
 import com.example.socialcircle.screens.ProfileSetupScreen
 import com.example.socialcircle.screens.VerificationScreen
 import com.example.socialcircle.viewModels.AuthenticationViewModel
-import com.example.socialcircle.viewModels.FriendsViewModel
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Verification : Screen("verification")
     object ForgotPassword : Screen("forgotPassword")
-    object ProfileCreation : Screen("profileCreation")
-    object Main : Screen("main")
-    object Chat : Screen("chat")
-    object Discover : Screen("discover")
-    object Profile : Screen("profile")
     object ProfileSetup: Screen(route = "profileSetup")
-    object FriendList: Screen(route = "friendList")
-    object FriendRequestList: Screen(route = "friendRequestList")
+    object Main : Screen("main")
+    object Discover : Screen("discover")
+    object Chat : Screen("chat")
+    object Friend : Screen("friend")
+    object Profile : Screen("profile")
 }
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val viewModel: AuthenticationViewModel = viewModel()
-    val friendsViewModel: FriendsViewModel = viewModel()
 
     val isLogin by remember { mutableStateOf(viewModel.user != null) }
 
     NavHost(
         navController = navController,
-        startDestination = if (isLogin) Screen.FriendList.route else Screen.Login.route //Screen.Main.route
+        startDestination = if (isLogin) Screen.Main.route else Screen.Login.route
     ) {
 
         composable(Screen.Login.route) {
@@ -62,20 +55,8 @@ fun AppNavigation() {
             ForgotPasswordScreen(viewModel, navController)
         }
 
-        composable(Screen.ProfileCreation.route){
-            ProfileCreationScreen(navController)
-        }
-
         composable(Screen.ProfileSetup.route){
             ProfileSetupScreen(navController)
-        }
-
-        composable(Screen.FriendList.route){
-            FriendListScreen(navController)
-        }
-
-        composable(Screen.FriendRequestList.route) {
-            FriendsRequestScreen(navController, friendsViewModel)
         }
     }
 }
