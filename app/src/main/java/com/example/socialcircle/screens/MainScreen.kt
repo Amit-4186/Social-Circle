@@ -116,7 +116,8 @@ fun MainScreen() {
                         }
                     },
                     lastLocation = viewModel.lastLocation.collectAsState().value,
-                    locationUpdateCount = viewModel.locationUpdateCount.collectAsState().value
+                    locationUpdateCount = viewModel.locationUpdateCount.collectAsState().value,
+                    viewModel = viewModel
                 )
 
                 Screen.Chat.route -> ChatScreen()

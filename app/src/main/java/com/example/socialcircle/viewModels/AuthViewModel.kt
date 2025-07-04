@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 class AuthenticationViewModel : ViewModel() {
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    val user = auth.currentUser
 
     private val _authState = MutableStateFlow<AuthResultState>(AuthResultState.Idle)
     val authState: StateFlow<AuthResultState> = _authState

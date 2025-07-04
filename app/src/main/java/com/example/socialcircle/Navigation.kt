@@ -9,7 +9,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.socialcircle.screens.ForgotPasswordScreen
-import com.example.socialcircle.screens.LoadingScreen
 import com.example.socialcircle.screens.LoginScreen
 import com.example.socialcircle.screens.MainScreen
 import com.example.socialcircle.screens.ProfileCreationScreen
@@ -18,7 +17,6 @@ import com.example.socialcircle.screens.VerificationScreen
 import com.example.socialcircle.viewModels.AuthenticationViewModel
 
 sealed class Screen(val route: String) {
-    object Loading : Screen("loading")
     object Login : Screen("login")
     object Verification : Screen("verification")
     object ForgotPassword : Screen("forgotPassword")
@@ -35,30 +33,12 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val viewModel: AuthenticationViewModel = viewModel()
 
-    val isLoaded by remember { mutableStateOf(false) }
-    val isLogin by remember { mutableStateOf(false) }
+    val isLogin by remember { mutableStateOf(viewModel.user != null) }
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Loading.route //Screen.Loading.route
+        startDestination = if (isLogin) Screen.Main.route else Screen.Login.route
     ) {
-
-        fun loadingComplete() {
-            if (isLogin) {
-                navController.navigate(Screen.Main.route) {
-                    popUpTo(Screen.Loading.route) { inclusive = true }
-                }
-            }
-            else {
-                navController.navigate(Screen.Login.route) {
-                    popUpTo(Screen.Loading.route) { inclusive = true }
-                }
-            }
-        }
-
-        composable(Screen.Loading.route) {
-            LoadingScreen(isLoaded = isLoaded, loadingComplete = { loadingComplete() })
-        }
 
         composable(Screen.Login.route) {
             LoginScreen(viewModel, navController)

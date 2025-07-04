@@ -48,6 +48,9 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.analytics)
+
+    //Animation
+    implementation(libs.lottie.compose)
     //Location Dependency
     implementation(libs.play.services.location)
     implementation(libs.accompanist.permissions)
