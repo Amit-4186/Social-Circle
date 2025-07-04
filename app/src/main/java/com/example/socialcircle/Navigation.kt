@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.socialcircle.screens.ForgotPasswordScreen
+import com.example.socialcircle.screens.FriendListScreen
 import com.example.socialcircle.screens.LoginScreen
 import com.example.socialcircle.screens.MainScreen
 import com.example.socialcircle.screens.ProfileCreationScreen
@@ -26,6 +27,7 @@ sealed class Screen(val route: String) {
     object Discover : Screen("discover")
     object Profile : Screen("profile")
     object ProfileSetup: Screen(route = "profileSetup")
+    object FriendList: Screen(route = "friendList")
 }
 
 @Composable
@@ -37,7 +39,7 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = if (isLogin) Screen.Main.route else Screen.Login.route
+        startDestination = if (isLogin) Screen.FriendList.route else Screen.Login.route //Screen.Main.route
     ) {
 
         composable(Screen.Login.route) {
@@ -61,7 +63,11 @@ fun AppNavigation() {
         }
 
         composable(Screen.ProfileSetup.route){
-            ProfileSetupScreen()
+            ProfileSetupScreen(navController)
+        }
+
+        composable(Screen.FriendList.route){
+            FriendListScreen()
         }
     }
 }

@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import com.example.socialcircle.models.ProfileDetails
 import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
@@ -68,18 +69,19 @@ class ProfileViewModel: ViewModel(){
 
     fun uploadOnFireStore(){
         val pathRef = storageRef.child("Profile_Pictures/${generateUniqueImageName()}")
+        val user = FirebaseAuth.getInstance().currentUser
 
         pathRef.putFile(profilePic)
             .addOnSuccessListener {
                 pathRef.downloadUrl
                     .addOnSuccessListener { downloadUrl ->
                         updateProfilePic(downloadUrl.toString())
-                        db.collection("UserProfiles")
-                            .add(_user.value)
+                        db.collection("UserProfiles").document(user!!.uid)
+                            .set(_user.value)
                             .addOnSuccessListener { documentReference ->
-                                Log.d("mine", "document added with id $documentReference")
+                                Log.d("mine", "document added with id $user.uid")
                                 db.collection("UserNames").document(_user.value.userName)
-                                    .set(mapOf("userId" to documentReference.id))
+                                    .set(mapOf("userId" to user.uid))
                             }
                             .addOnFailureListener { e ->
                                 Log.d("mine", "error in uploading", e)

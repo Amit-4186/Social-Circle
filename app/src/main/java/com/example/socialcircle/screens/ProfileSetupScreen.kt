@@ -56,6 +56,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.core.net.toUri
+import androidx.navigation.NavController
+import com.example.socialcircle.Screen
 
 private sealed class DetailScreens(val title: String, val subtitle: String, val entry: String){
     object PhoneNo: DetailScreens(
@@ -93,7 +95,7 @@ private sealed class DetailScreens(val title: String, val subtitle: String, val 
 //@Preview(showBackground = true)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileSetupScreen(viewModel: ProfileViewModel = viewModel()){
+fun ProfileSetupScreen(navController: NavController, viewModel: ProfileViewModel = viewModel()){
     val context = LocalContext.current
     var currentStepIndex by remember { mutableIntStateOf(0) }
     val currentStep = DetailScreens.steps[currentStepIndex]
@@ -165,8 +167,11 @@ fun ProfileSetupScreen(viewModel: ProfileViewModel = viewModel()){
                     }
                 }
             }
-            if (isNext && currentStepIndex < DetailScreens.steps.size - 1) {
-                currentStepIndex++
+            if (currentStepIndex < DetailScreens.steps.size - 1) {
+                if(isNext) currentStepIndex++
+            }
+            else{
+                navController.navigate(Screen.Main.route)
             }
             Log.d("mine", "$user")
         }
