@@ -10,12 +10,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.socialcircle.screens.ForgotPasswordScreen
 import com.example.socialcircle.screens.FriendListScreen
+import com.example.socialcircle.screens.FriendsRequestScreen
 import com.example.socialcircle.screens.LoginScreen
 import com.example.socialcircle.screens.MainScreen
 import com.example.socialcircle.screens.ProfileCreationScreen
 import com.example.socialcircle.screens.ProfileSetupScreen
 import com.example.socialcircle.screens.VerificationScreen
 import com.example.socialcircle.viewModels.AuthenticationViewModel
+import com.example.socialcircle.viewModels.FriendsViewModel
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -28,12 +30,14 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object ProfileSetup: Screen(route = "profileSetup")
     object FriendList: Screen(route = "friendList")
+    object FriendRequestList: Screen(route = "friendRequestList")
 }
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val viewModel: AuthenticationViewModel = viewModel()
+    val friendsViewModel: FriendsViewModel = viewModel()
 
     val isLogin by remember { mutableStateOf(viewModel.user != null) }
 
@@ -67,7 +71,11 @@ fun AppNavigation() {
         }
 
         composable(Screen.FriendList.route){
-            FriendListScreen()
+            FriendListScreen(navController)
+        }
+
+        composable(Screen.FriendRequestList.route) {
+            FriendsRequestScreen(navController, friendsViewModel)
         }
     }
 }

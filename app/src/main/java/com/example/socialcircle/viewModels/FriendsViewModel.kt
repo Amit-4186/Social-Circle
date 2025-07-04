@@ -3,27 +3,52 @@ package com.example.socialcircle.viewModels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.example.socialcircle.models.ProfileDetails
+import com.example.socialcircle.models.RequestModel
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlin.collections.chunked
 
 class FriendsViewModel: ViewModel() {
 
     private val db = Firebase.firestore
-    val user = FirebaseAuth.getInstance().currentUser!!
+    private val user = FirebaseAuth.getInstance().currentUser!!
     private val _friendList = MutableStateFlow<List<ProfileDetails>>(emptyList())
+    private val _requestList = MutableStateFlow<List<ProfileDetails>>(emptyList())
 
     val friendList = _friendList
+    val requestList = _requestList
 
-    init{
-        fetchFriendList { friendIds->
-            fetchFriendProfiles(friendIds)
+    fun getFriendProfiles(){
+        fetchFriendIds { idList->
+            fetchFriendsProfiles(idList)
         }
     }
 
-    fun fetchFriendList(onResult: (List<String>)->Unit){
+    fun getFriendRequests(){
+        Log.d("mine", "get Friend Request List")
+        fetchFriendRequestIds { idList->
+            Log.d("mine", "id: $idList")
+            fetchRequestProfiles(idList)
+        }
+    }
+
+
+    fun sentFriendRequest(uid: String, onSuccess: ()->Unit, onFailure: (e: Exception)->Unit){
+        db.collection("FriendRequests")
+            .add(RequestModel(fromUserid = user.uid, toUserId = uid))
+            .addOnSuccessListener{
+                onSuccess()
+            }
+            .addOnFailureListener { e->
+                onFailure(e)
+            }
+    }
+
+
+    private fun fetchFriendIds(onResult: (List<String>)->Unit){
         db.collection("UserProfiles").document(user.uid).collection("Friends")
             .get()
             .addOnSuccessListener { snapshot ->
@@ -32,7 +57,7 @@ class FriendsViewModel: ViewModel() {
             }
     }
 
-    private fun fetchFriendProfiles(friendIds: List<String>) {
+    private fun fetchFriendsProfiles(friendIds: List<String>) {
         if (friendIds.isEmpty()) {
             _friendList.value = emptyList()
             return
@@ -43,7 +68,6 @@ class FriendsViewModel: ViewModel() {
         val tempList = mutableListOf<ProfileDetails>()
         var completedChunks = 0
 
-        Log.d("mine", chunks.toString())
         for (chunk in chunks) {
             db.collection("UserProfiles")
                 .whereIn(FieldPath.documentId(), chunk) //
@@ -52,15 +76,16 @@ class FriendsViewModel: ViewModel() {
                     val users = result.documents.mapNotNull { doc ->
                         doc.toObject(ProfileDetails::class.java)
                     }
-                    Log.d("mine", result.size().toString())
                     tempList.addAll(users)
+                    Log.d("mine", "successful ${result.size()}")
                     completedChunks++
 
                     if (completedChunks == totalChunks) {
                         _friendList.value = tempList
                     }
                 }
-                .addOnFailureListener {
+                .addOnFailureListener {e->
+                    Log.e("mine", "failed: ${e.message}")
                     completedChunks++
                     if (completedChunks == totalChunks) {
                         _friendList.value = tempList
@@ -68,4 +93,57 @@ class FriendsViewModel: ViewModel() {
                 }
         }
     }
+
+    private fun fetchFriendRequestIds(onResult: (List<String>)->Unit){
+        db.collection("FriendRequests")
+            .whereEqualTo("toUserId", user.uid)
+            .get()
+            .addOnSuccessListener {document->
+                val result = document.mapNotNull {doc->
+                    doc.getString("fromUserId")
+                }
+                onResult(result)
+            }
+            .addOnFailureListener {e->
+                Log.d("mine", "failed to fetch requests ${e.message}")
+            }
+    }
+
+    private fun fetchRequestProfiles(requestIds: List<String>){
+        if (requestIds.isEmpty()) {
+            _friendList.value = emptyList()
+            return
+        }
+
+        val chunks = requestIds.chunked(10)
+        val totalChunks = chunks.size
+        val tempList = mutableListOf<ProfileDetails>()
+        var completedChunks = 0
+
+        for (chunk in chunks) {
+            db.collection("UserProfiles")
+                .whereIn(FieldPath.documentId(), chunk) //
+                .get()
+                .addOnSuccessListener { result ->
+                    val users = result.documents.mapNotNull { doc ->
+                        doc.toObject(ProfileDetails::class.java)
+                    }
+                    tempList.addAll(users)
+                    Log.d("mine", "successful ${result.size()}")
+                    completedChunks++
+
+                    if (completedChunks == totalChunks) {
+                        _requestList.value = tempList
+                    }
+                }
+                .addOnFailureListener {e->
+                    Log.e("mine", "failed: ${e.message}")
+                    completedChunks++
+                    if (completedChunks == totalChunks) {
+                        _requestList.value = tempList
+                    }
+                }
+        }
+    }
+
 }
