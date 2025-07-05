@@ -43,24 +43,22 @@ import com.example.socialcircle.viewModels.FriendsViewModel
 
 
 @Composable
-fun FriendList(viewModel: FriendsViewModel = viewModel()) {
+fun FriendList(friendsViewModel: FriendsViewModel = viewModel(), onChatClick: (String) -> Unit) {
 
     SideEffect {
-        viewModel.getFriendProfiles()
+        friendsViewModel.getFriendProfiles()
     }
 
-    val friends by viewModel.friendList.collectAsState()
+    val friends by friendsViewModel.friendList.collectAsState()
 
-    LazyColumn(modifier = Modifier
-        .fillMaxSize()
-        .padding(8.dp)) {
+    LazyColumn( modifier = Modifier.fillMaxSize() ) {
         items(friends) { friend ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { }
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
@@ -88,9 +86,7 @@ fun FriendList(viewModel: FriendsViewModel = viewModel()) {
                     )
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
                     Text(
                         text = friend.name,
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
@@ -103,7 +99,7 @@ fun FriendList(viewModel: FriendsViewModel = viewModel()) {
                 }
 
                 Button(
-                    onClick = { TODO() },
+                    onClick = { friendsViewModel },
                     shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Gray

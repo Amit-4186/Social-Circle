@@ -29,7 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.socialcircle.Screen
+import com.example.socialcircle.AppScreens
 import com.example.socialcircle.viewModels.AuthResultState
 import com.example.socialcircle.viewModels.AuthenticationViewModel
 
@@ -49,13 +49,13 @@ fun LoginScreen(viewModel: AuthenticationViewModel, navController: NavController
 
             is AuthResultState.Success -> {
                 Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
-                navController.navigate(Screen.Main.route) {
+                navController.navigate(AppScreens.MainNav.route) {
                     popUpTo(0) { inclusive = true }
                 }
             }
 
             is AuthResultState.VerificationEmailSent -> {
-                navController.navigate(Screen.Verification.route)
+                navController.navigate(AppScreens.Verification.route)
             }
 
             else -> Unit
