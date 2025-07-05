@@ -26,6 +26,8 @@ import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -35,11 +37,12 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-class LocationViewModel(
+class DiscoverViewModel(
     private val fusedClient: FusedLocationProviderClient,
     private val settingsClient: SettingsClient
 ) : ViewModel() {
     val uid = Firebase.auth.uid
+
     private val firestore = Firebase.firestore
     private val locationCollection = firestore.collection("UserLocation")
 
@@ -48,6 +51,9 @@ class LocationViewModel(
 
     private val _nearbyUsers = MutableStateFlow<List<String>>(emptyList())
     val nearbyUsers: StateFlow<List<String>> = _nearbyUsers
+
+//    private val _refreshTrigger = MutableStateFlow(0)
+//    val refreshTrigger = _refreshTrigger.asStateFlow()
 
     private var locationUpdatesStarted = false
 
@@ -61,7 +67,6 @@ class LocationViewModel(
         )
 
         locationCollection.document(uid).set(userLocationData)
-        Log.d("location", "location published")
     }
 
     // Schedule periodic refresh every 5 minutes
@@ -73,7 +78,7 @@ class LocationViewModel(
                 lastLocation.value?.let { loc ->
                     refreshNearby(loc)
                 }
-                delay(10 * 60 * 1000L) // updated after 10 minutes
+                delay(60 * 1000L) // updated after 10 minutes
             }
         }
     }
@@ -90,6 +95,7 @@ class LocationViewModel(
                 if (dist <= 2.0) doc.id else null
             }
             _nearbyUsers.value = nearby
+//            _refreshTrigger.update { it + 1 }
         }
     }
 
@@ -111,6 +117,7 @@ class LocationViewModel(
         override fun onLocationResult(result: LocationResult) {
             result.lastLocation?.let {
                 publishLocation(uid!!, it) // pushing location on firestore
+                Log.d("geoPoint Publish", "Lat: ${it.latitude} Lng: ${it.longitude}")
             }
             _lastLocation.value = result.lastLocation //temporary
         }
@@ -179,6 +186,6 @@ class LocationViewModelFactory(context: Context) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return LocationViewModel(fusedClient, settingsClient) as T
+        return DiscoverViewModel(fusedClient, settingsClient) as T
     }
 }

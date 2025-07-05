@@ -26,7 +26,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,14 +44,14 @@ import com.example.socialcircle.viewModels.FriendsViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendsRequest(
-    viewModel: FriendsViewModel
+    friendsViewModel: FriendsViewModel
 ) {
 
     SideEffect {
-        viewModel.getFriendRequests()
+        friendsViewModel.getFriendRequests()
     }
 
-    val users by viewModel.requestList.collectAsState()
+    val users by friendsViewModel.requestList.collectAsState()
 
     Column {
         LazyColumn {
@@ -61,7 +60,7 @@ fun FriendsRequest(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {  }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -100,7 +99,7 @@ fun FriendsRequest(
                     }
 
                     Button(
-                        onClick = { viewModel.acceptFriendRequest(profile.uid) },
+                        onClick = { friendsViewModel.acceptFriendRequest(profile.uid) },
                         shape = RoundedCornerShape(20.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Blue20,

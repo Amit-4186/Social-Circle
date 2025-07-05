@@ -5,9 +5,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.socialcircle.screens.ChatListScreen
+import com.example.socialcircle.screens.ChatScreen
 import com.example.socialcircle.screens.ForgotPasswordScreen
 import com.example.socialcircle.screens.LoginScreen
 import com.example.socialcircle.screens.MainScreen
@@ -15,48 +19,53 @@ import com.example.socialcircle.screens.ProfileSetupScreen
 import com.example.socialcircle.screens.VerificationScreen
 import com.example.socialcircle.viewModels.AuthenticationViewModel
 
-sealed class Screen(val route: String) {
-    object Login : Screen("login")
-    object Verification : Screen("verification")
-    object ForgotPassword : Screen("forgotPassword")
-    object ProfileSetup: Screen(route = "profileSetup")
-    object Main : Screen("main")
-    object Discover : Screen("discover")
-    object Chat : Screen("chat")
-    object Friend : Screen("friend")
-    object Profile : Screen("profile")
+sealed class AppScreens(val route: String) {
+    object Login : AppScreens("login")
+    object Verification : AppScreens("verification")
+    object ForgotPassword : AppScreens("forgotPassword")
+    object ProfileSetup: AppScreens(route = "profileSetup")
+    object MainNav : AppScreens("mainNav")
+    object Chat : AppScreens("chat/{chatId}")
 }
 
 @Composable
 fun AppNavigation() {
-    val navController = rememberNavController()
-    val viewModel: AuthenticationViewModel = viewModel()
+    val appNavController = rememberNavController()
+    val authViewModel: AuthenticationViewModel = viewModel()
 
-    val isLogin by remember { mutableStateOf(viewModel.user != null) }
+    val isLogin by remember { mutableStateOf(authViewModel.user != null) }
 
     NavHost(
-        navController = navController,
-        startDestination = if (isLogin) Screen.Main.route else Screen.Login.route
+        navController = appNavController,
+        startDestination = if (isLogin) AppScreens.MainNav.route else AppScreens.Login.route
     ) {
 
-        composable(Screen.Login.route) {
-            LoginScreen(viewModel, navController)
+        composable(AppScreens.Login.route) {
+            LoginScreen(authViewModel, appNavController)
         }
 
-        composable(Screen.Main.route) {
-            MainScreen()
+        composable(AppScreens.Verification.route){
+            VerificationScreen(authViewModel, appNavController)
         }
 
-        composable(Screen.Verification.route){
-            VerificationScreen(viewModel, navController)
+        composable(AppScreens.ForgotPassword.route){
+            ForgotPasswordScreen(authViewModel, appNavController)
         }
 
-        composable(Screen.ForgotPassword.route){
-            ForgotPasswordScreen(viewModel, navController)
+        composable(AppScreens.ProfileSetup.route){
+            ProfileSetupScreen(appNavController)
         }
 
-        composable(Screen.ProfileSetup.route){
-            ProfileSetupScreen(navController)
+        composable(AppScreens.MainNav.route) {
+            MainScreen(appNavController)
+        }
+
+        composable(
+            route = AppScreens.Chat.route,
+            arguments = listOf(navArgument("chatId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: return@composable
+            ChatScreen(chatId)
         }
     }
 }

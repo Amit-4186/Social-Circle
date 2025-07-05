@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubble
@@ -30,13 +31,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
@@ -45,34 +51,72 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.socialcircle.R
+import com.example.socialcircle.models.ProfileDetails
 import com.example.socialcircle.ui.theme.Blue20
-import com.example.socialcircle.viewModels.LocationViewModel
+import com.example.socialcircle.viewModels.DiscoverViewModel
+import com.example.socialcircle.viewModels.FriendsViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlin.collections.getValue
 
 @Composable
 fun DiscoverScreen(
     uid: String,
+    friendsViewModel: FriendsViewModel,
     hasPermission: Boolean,
     isGpsOn: Boolean,
     onRequestPermission: () -> Unit,
     onEnableGps: () -> Unit,
     lastLocation: Location?,
-    viewModel: LocationViewModel,
-    onSendChat: (String) -> Unit,
+    discoverViewModel: DiscoverViewModel,
+    onChatClick: (String) -> Unit,
     onFriendRequest: (String) -> Unit
 ) {
     lastLocation?.let {
         Log.d("geopoint", "Lat: ${it.latitude} Lng: ${it.longitude}")
     } ?: Log.d("geopoint", "Waiting for location...")
 
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        val nearby by viewModel.nearbyUsers.collectAsState()
+    val nearby by discoverViewModel.nearbyUsers.collectAsState()
+//    val profileMapCache by friendsViewModel.friendList
+//        .collectAsState()
+//        .let { profilesState ->
+//            remember(profilesState) {
+//                derivedStateOf { profilesState.value.associateBy { it.uid } }
+//            }
+//        }
+//    val trigger by discoverViewModel.refreshTrigger.collectAsState()
+////    val profileMapCache = remember { mutableStateMapOf<String, ProfileDetails>() }
+//
+//    LaunchedEffect(trigger) {
+//        friendsViewModel.getNearbyProfile(nearby)
+////        friendsViewModel.fetchFriendsProfiles(nearby)
+////        val temp : MutableStateFlow<List<ProfileDetails>> = MutableStateFlow(emptyList())
+////        friendsViewModel.fetchProfilesByIds(nearby, temp)
+////        profileMapCache.putAll(temp.first().associateBy { it.uid })
+//    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF66B5FF),
+                        Color(0xFFCCE6FF),
+                        Color.White
+                    ),
+                    radius = 1000f
+                )
+            ), contentAlignment = Alignment.Center
+    ) {
         when {
             !hasPermission ->
                 LocationPermission(onRequestPermission)
@@ -111,20 +155,18 @@ fun DiscoverScreen(
                                 ) {
                                     Image(
                                         painter = painterResource(R.drawable.profile),
+//                                        placeholder = painterResource(R.drawable.profile),
                                         contentDescription = "Profile Picture",
-                                        modifier = Modifier
-                                            .fillMaxHeight()
-                                            .aspectRatio(1f)
-                                            .clip(RoundedCornerShape(100))
+                                        modifier = Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(100))
                                     )
                                     Text(
-                                        "UserName_1234",
+                                        "Loading...",
                                         fontSize = 14.sp,
                                         modifier = Modifier.padding(start = 4.dp)
                                     )
                                 }
                                 IconButton(
-                                    onClick = { onSendChat(uid) },
+                                    onClick = { onChatClick(uid) },
                                     modifier = Modifier
                                         .weight(.15f)
                                         .height(18.dp)
@@ -145,25 +187,27 @@ fun DiscoverScreen(
 
                     var isButtonEnabled by remember { mutableStateOf(true) }
 
-                    Button(
+                    IconButton(
                         onClick = {
-                            lastLocation?.let { viewModel.refreshNearby(it) }
-                            isButtonEnabled = false
+                            if (isButtonEnabled) {
+                                lastLocation?.let { discoverViewModel.refreshNearby(it) }
+                                isButtonEnabled = false
+                            }
                         },
                         modifier = Modifier
-                            .padding(6.dp)
-                            .align(Alignment.BottomCenter),
-                        enabled = isButtonEnabled
+                            .padding(12.dp)
+                            .shadow(4.dp, shape = CircleShape)
+                            .background(color = Blue20)
+                            .align(Alignment.BottomCenter)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Refresh Nearby Users", fontSize = 12.sp)
-                            Icon(
-                                Icons.Default.Refresh,
-                                contentDescription = "Refresh Nearby",
-                                Modifier.size(16.dp)
-                            )
-                        }
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Refresh",
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
                     }
+
                     if (!isButtonEnabled) {
                         LaunchedEffect(Unit) {
                             delay(5000)
@@ -193,7 +237,10 @@ fun LocationPermission(onClick: () -> Unit) {
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-            Text("In order to find people nearby and socialise with them, allow location permission.", textAlign = TextAlign.Center)
+            Text(
+                "In order to find people nearby and socialise with them, allow location permission.",
+                textAlign = TextAlign.Center
+            )
             Button(onClick = onClick, shape = RectangleShape) {
                 Text("Request Permission", color = Color.White)
             }
@@ -219,7 +266,10 @@ fun LocationEnable(onClick: () -> Unit) {
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
-        Text("In order to find people nearby and socialise with them, enable your device location.", textAlign = TextAlign.Center)
+        Text(
+            "In order to find people nearby and socialise with them, enable your device location.",
+            textAlign = TextAlign.Center
+        )
         Button(onClick = onClick, shape = RectangleShape) {
             Text("Enable GPS", color = Color.White)
         }

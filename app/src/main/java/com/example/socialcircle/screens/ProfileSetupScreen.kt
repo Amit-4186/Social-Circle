@@ -57,7 +57,7 @@ import java.util.Date
 import java.util.Locale
 import androidx.core.net.toUri
 import androidx.navigation.NavController
-import com.example.socialcircle.Screen
+import com.example.socialcircle.AppScreens
 
 private sealed class DetailScreens(val title: String, val subtitle: String, val entry: String){
     object PhoneNo: DetailScreens(
@@ -171,7 +171,7 @@ fun ProfileSetupScreen(navController: NavController){
                 if(isNext) currentStepIndex++
             }
             else{
-                navController.navigate(Screen.Main.route)
+                navController.navigate(AppScreens.MainNav.route)
             }
             Log.d("mine", "$user")
         }
