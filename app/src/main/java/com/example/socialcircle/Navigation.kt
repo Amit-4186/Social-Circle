@@ -5,13 +5,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.example.socialcircle.screens.ChatListScreen
-import com.example.socialcircle.screens.ChatScreen
 import com.example.socialcircle.screens.ForgotPasswordScreen
 import com.example.socialcircle.screens.LoginScreen
 import com.example.socialcircle.screens.MainScreen
@@ -25,7 +21,6 @@ sealed class AppScreens(val route: String) {
     object ForgotPassword : AppScreens("forgotPassword")
     object ProfileSetup: AppScreens(route = "profileSetup")
     object MainNav : AppScreens("mainNav")
-    object Chat : AppScreens("chat/{chatId}")
 }
 
 @Composable
@@ -60,12 +55,12 @@ fun AppNavigation() {
             MainScreen(appNavController)
         }
 
-        composable(
-            route = AppScreens.Chat.route,
-            arguments = listOf(navArgument("chatId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val chatId = backStackEntry.arguments?.getString("chatId") ?: return@composable
-            ChatScreen(chatId)
-        }
+//        composable(
+//            route = AppScreens.Chat.route,
+//            arguments = listOf(navArgument("chatId") { type = NavType.StringType })
+//        ) { backStackEntry ->
+//            val chatId = backStackEntry.arguments?.getString("chatId") ?: return@composable
+//            ChatScreen(chatId)
+//        }
     }
 }

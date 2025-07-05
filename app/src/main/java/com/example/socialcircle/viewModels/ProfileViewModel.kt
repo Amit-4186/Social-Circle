@@ -7,7 +7,6 @@ import com.example.socialcircle.models.ProfileDetails
 import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
@@ -20,7 +19,7 @@ class ProfileViewModel: ViewModel(){
     private val db = Firebase.firestore
     private val storageRef = FirebaseStorage.getInstance().reference
 
-    private val _user = MutableStateFlow(ProfileDetails())
+    private val _user = MutableStateFlow(ProfileDetails(uid = FirebaseAuth.getInstance().currentUser!!.uid))
 
     lateinit var profilePic: Uri
     val user = _user.asStateFlow()
@@ -70,19 +69,16 @@ class ProfileViewModel: ViewModel(){
 
     fun uploadOnFireStore(){
         val pathRef = storageRef.child("Profile_Pictures/${generateUniqueImageName()}")
-        val user = FirebaseAuth.getInstance().currentUser
 
         pathRef.putFile(profilePic)
             .addOnSuccessListener {
                 pathRef.downloadUrl
                     .addOnSuccessListener { downloadUrl ->
                         updateProfilePic(downloadUrl.toString())
-                        db.collection("UserProfiles").document(user!!.uid)
+                        db.collection("UserProfiles").document(_user.value.uid)
                             .set(_user.value)
                             .addOnSuccessListener { documentReference ->
-                                Log.d("mine", "document added with id $user.uid")
-                                db.collection("UserNames").document(_user.value.userName)
-                                    .set(mapOf("userId" to user.uid))
+                                Log.d("mine", "document added with id ${_user.value.uid}")
                             }
                             .addOnFailureListener { e ->
                                 Log.d("mine", "error in uploading", e)

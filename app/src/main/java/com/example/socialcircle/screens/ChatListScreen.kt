@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.socialcircle.models.ChatListItem
 import com.example.socialcircle.viewModels.ChatViewModel
@@ -38,7 +39,7 @@ import java.util.Locale
 
 
 @Composable
-fun ChatListScreen(viewModel: ChatViewModel = viewModel()) {
+fun ChatListScreen(navController: NavController, viewModel: ChatViewModel, onChatClick: (String)->Unit) {
 
     LaunchedEffect(Unit) {
         viewModel.getChatList()
@@ -50,8 +51,8 @@ fun ChatListScreen(viewModel: ChatViewModel = viewModel()) {
         items(chatList) { chat ->
             ChatItemView(
                 chat
-            ){
-                //Todo ChatScreen(viewModel, chat.otherUserId)
+            ){otherId->
+                onChatClick(otherId)
             }
         }
     }
@@ -61,12 +62,12 @@ fun ChatListScreen(viewModel: ChatViewModel = viewModel()) {
 @Composable
 fun ChatItemView(
     chat: ChatListItem,
-    onChatClick: (ChatListItem) -> Unit
+    onChatClick: (String) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onChatClick(chat) }
+            .clickable { onChatClick(chat.otherUserId) }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -72,7 +72,7 @@ class FriendsViewModel : ViewModel() {
             }
     }
 
-    fun fetchFriendRequestIds(onResult: (List<String>) -> Unit) {
+    private fun fetchFriendRequestIds(onResult: (List<String>) -> Unit) {
         db.collection("FriendRequests")
             .whereEqualTo("toUserId", user.uid)
             .get()
@@ -87,7 +87,7 @@ class FriendsViewModel : ViewModel() {
             }
     }
 
-    fun fetchProfilesByIds(
+    private fun fetchProfilesByIds(
         userIds: List<String>,
         targetState: MutableStateFlow<List<ProfileDetails>>
     ) {

@@ -42,12 +42,15 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.socialcircle.ui.theme.Blue20
-import com.example.socialcircle.viewModels.FriendsViewModel
+import com.example.socialcircle.viewModels.ChatViewModel
 import com.example.socialcircle.viewModels.DiscoverViewModel
+import com.example.socialcircle.viewModels.FriendsViewModel
 import com.example.socialcircle.viewModels.LocationViewModelFactory
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
@@ -63,20 +66,23 @@ sealed class MainScreens(val route: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(appNavController: NavController) {
+    val mainNavController = rememberNavController()
+
     fun onChatClick(chatId: String) {
-        appNavController.navigate("chat/$chatId") {
+        mainNavController.navigate("chat/$chatId") {
             launchSingleTop = true
             restoreState = true
         }
     }
 
     val uid = Firebase.auth.uid
-    val mainNavController = rememberNavController()
+
 
     val context = LocalContext.current
     val discoverViewModel: DiscoverViewModel =
         viewModel(factory = LocationViewModelFactory(context))
     val friendsViewModel: FriendsViewModel = viewModel()
+    val chatViewModel: ChatViewModel = viewModel()
 
     var currentScreen by remember { mutableStateOf<MainScreens>(MainScreens.Discover) }
 
@@ -212,14 +218,26 @@ fun MainScreen(appNavController: NavController) {
                         onFriendRequest = { uid ->
                             friendsViewModel.sendFriendRequest(
                                 uid,
-                                { Toast.makeText(context, "Friend Request Sent", Toast.LENGTH_SHORT).show() },
-                                { Toast.makeText(context, "Unexpected Error", Toast.LENGTH_SHORT).show() }
+                                {
+                                    Toast.makeText(
+                                        context,
+                                        "Friend Request Sent",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                {
+                                    Toast.makeText(context, "Unexpected Error", Toast.LENGTH_SHORT)
+                                        .show()
+                                }
                             )
                         }
                     )
                 }
                 composable(MainScreens.ChatList.route) {
-                    ChatListScreen(mainNavController) { chatId -> onChatClick(chatId) }
+                    ChatListScreen(
+                        mainNavController,
+                        chatViewModel
+                    ) { chatId -> onChatClick(chatId) }
                 }
                 composable(MainScreens.Friend.route) {
                     FriendScreen(
@@ -229,6 +247,15 @@ fun MainScreen(appNavController: NavController) {
                 }
                 composable(MainScreens.Profile.route) {
                     ProfileScreen(mainNavController, appNavController)
+                }
+
+                composable(
+                    route = "chat/{chatId}",//AppScreens.Chat.route,
+                    arguments = listOf(navArgument("chatId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val chatId = backStackEntry.arguments?.getString("chatId") ?: return@composable
+
+                    ChatScreen(chatViewModel, chatId)
                 }
             }
         }
