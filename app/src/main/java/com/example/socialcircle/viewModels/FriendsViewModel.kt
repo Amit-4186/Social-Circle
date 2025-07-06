@@ -39,35 +39,12 @@ class FriendsViewModel : ViewModel() {
 //        fetchProfilesByIds(userIds, _nearbyProfiles)
 //    }
 
-
-    fun sendFriendRequest(
-        toUserId: String,
-        onSuccess: () -> Unit,
-        onFailure: (e: Exception) -> Unit
-    ) {
-        db.collection("FriendRequests")
-            .add(
-                RequestModel(
-                    fromUserid = user.uid,
-                    toUserId = toUserId,
-                    Timestamp(System.currentTimeMillis())
-                ),
-            )
-            .addOnSuccessListener {
-                onSuccess()
-            }
-            .addOnFailureListener { e ->
-                onFailure(e)
-            }
-    }
-
-
     private fun fetchFriendIds(onResult: (List<String>) -> Unit) {
         db.collection("UserProfiles").document(user.uid).collection("Friends")
             .get()
             .addOnSuccessListener { snapshot ->
                 val friendIds =
-                    snapshot.documents.mapNotNull { doc -> doc.getString("userId") }  // Gives you the list of ids
+                    snapshot.documents.mapNotNull { doc -> doc.getString("userId") }
                 onResult(friendIds)
             }
     }
@@ -127,6 +104,26 @@ class FriendsViewModel : ViewModel() {
         }
     }
 
+    fun sendFriendRequest(
+        toUserId: String,
+        onSuccess: () -> Unit,
+        onFailure: (e: Exception) -> Unit
+    ) {
+        db.collection("FriendRequests")
+            .add(
+                RequestModel(
+                    fromUserid = user.uid,
+                    toUserId = toUserId,
+                    Timestamp(System.currentTimeMillis())
+                ),
+            )
+            .addOnSuccessListener {
+                onSuccess()
+            }
+            .addOnFailureListener { e ->
+                onFailure(e)
+            }
+    }
 
     fun acceptFriendRequest(fromUserId: String) {
         db.collection("FriendRequests")
@@ -140,7 +137,6 @@ class FriendsViewModel : ViewModel() {
 
                 db.collection("FriendRequests").document(docId).delete()
                     .addOnSuccessListener {
-                        // Add both users to each other's friends list
                         val currentUserRef = db.collection("UserProfiles").document(user.uid)
                             .collection("Friends").document(fromUserId)
                         val otherUserRef = db.collection("UserProfiles").document(fromUserId)
@@ -175,6 +171,34 @@ class FriendsViewModel : ViewModel() {
                     .addOnSuccessListener {
                         getFriendRequests()
                     }
+            }
+    }
+
+    fun removeFriend(
+        friendUserId: String,
+        onSuccess: () -> Unit = {},
+        onFailure: (e: Exception) -> Unit = {}
+    ) {
+        val currentUserRef = db.collection("UserProfiles")
+            .document(user.uid)
+            .collection("Friends")
+            .document(friendUserId)
+        val otherUserRef = db.collection("UserProfiles")
+            .document(friendUserId)
+            .collection("Friends")
+            .document(user.uid)
+
+        val batch = db.batch()
+        batch.delete(currentUserRef)
+        batch.delete(otherUserRef)
+
+        batch.commit()
+            .addOnSuccessListener {
+                getFriendProfiles()
+                onSuccess()
+            }
+            .addOnFailureListener { e ->
+                onFailure(e)
             }
     }
 }

@@ -1,97 +1,113 @@
 package com.example.socialcircle.viewModels
 
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.ViewModel
-import com.example.socialcircle.models.ProfileDetails
-import com.google.firebase.Firebase
+import androidx.lifecycle.viewModelScope
+import com.example.socialcircle.models.DateModel
+import com.example.socialcircle.models.UserProfile
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.firestore
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import java.util.Calendar
 import java.util.UUID
 
-class ProfileViewModel: ViewModel(){
+class ProfileViewModel : ViewModel() {
 
-    private val db = Firebase.firestore
-    private val storageRef = FirebaseStorage.getInstance().reference
+    private val auth = FirebaseAuth.getInstance()
+    private val db = FirebaseFirestore.getInstance()
+    private val user = auth.currentUser
+    private val dbRef = db.collection("UserProfiles").document(user!!.uid)
 
-    private val _user = MutableStateFlow(ProfileDetails(uid = FirebaseAuth.getInstance().currentUser!!.uid))
+    private val _profileState = MutableStateFlow<UserProfile?>(null)
+    val profileState: StateFlow<UserProfile?> = _profileState
 
-    lateinit var profilePic: Uri
-    val user = _user.asStateFlow()
-
-    fun updatePhoneNumber(phone: String): Boolean {
-        if(phone.matches(Regex("^(\\+91)?[6-9]\\d{9}$"))) {
-            _user.value = _user.value.copy(phoneNumber = phone)
-            return true
+    fun loadProfile() {
+        if(user == null) {
+            return
         }
-        else {
-            return false
+
+        viewModelScope.launch {
+            dbRef.get().addOnSuccessListener { doc ->
+                if (doc.exists()) {
+                    val userProfile = UserProfile(
+                        uid = doc.getString("uid") ?: user.uid,
+                        name = doc.getString("name") ?: "",
+                        birthDate = doc.getTimestamp("birthDate"),
+                        phoneNumber = doc.getString("phoneNumber") ?: "",
+                        photoUrl = doc.getString("photoUrl") ?: "",
+                        userName = doc.getString("userName") ?: ""
+                    )
+
+                    dbRef.collection("Friends").get().addOnSuccessListener { friendsSnapshot ->
+                        val count = friendsSnapshot.size()
+                        _profileState.value = userProfile.copy(friendCount = count)
+                    }
+                }
+            }
         }
     }
 
-    fun updateName(name: String) {
-        _user.value = _user.value.copy(name = name)
+    fun updateName(newName: String) {
+        updateField("name", newName)
     }
 
-    fun updateUsername(username: String) {
-        _user.value = _user.value.copy(userName = username)
+    fun updateBirthDate(newBirthDate: DateModel) {
+        updateField("birthDate", createTimestamp(newBirthDate))
     }
 
-    fun updateBirthDate(date: Timestamp) {
-        _user.value = _user.value.copy(birthDate = date)
+    fun updatePhoneNumber(newPhone: String) {
+        updateField("phoneNumber", newPhone)
     }
 
-    fun updateProfilePic(url: String) {
-        _user.value = _user.value.copy(photoUrl = url)
+    fun updateUserName(newUsername: String) {
+        updateField("userName", newUsername)
     }
 
-    fun deleteProfilePic(pathRef: StorageReference){
-        pathRef.delete()
-    }
-
-    fun checkIfUsernameExists(
-        username: String,
+    fun updateProfilePic(
+        newImageUri: Uri,
         onResult: (Boolean) -> Unit
     ) {
-        db.collection("UserNames").document(username).get()
-            .addOnSuccessListener { document ->
-                onResult(document.exists())
+        val storage = FirebaseStorage.getInstance().reference
+
+        dbRef.get().addOnSuccessListener { snap ->
+            val oldUrl = snap.getString("photoUrl")
+            if (!oldUrl.isNullOrBlank()) {
+                val oldRef = FirebaseStorage.getInstance().getReferenceFromUrl(oldUrl)
+                oldRef.delete()
             }
-            .addOnFailureListener {
-                onResult(false) // or handle error
-            }
+
+            val newPath = storage.child("Profile_Pictures/${generateUniqueImageName()}")
+            newPath.putFile(newImageUri)
+                .addOnSuccessListener {
+                    newPath.downloadUrl
+                        .addOnSuccessListener { dlUrl ->
+                            dbRef.update("photoUrl", dlUrl.toString())
+                                .addOnSuccessListener {
+                                    loadProfile()
+                                    onResult(true)
+                                }
+                                .addOnFailureListener { onResult(false) }
+                        }
+                        .addOnFailureListener { onResult(false) }
+                }
+                .addOnFailureListener { onResult(false) }
+        }.addOnFailureListener {
+            onResult(false)
+        }
     }
 
-    fun uploadOnFireStore(){
-        val pathRef = storageRef.child("Profile_Pictures/${generateUniqueImageName()}")
+    private fun updateField(field: String, value: Any) {
+        dbRef.update(field, value).addOnSuccessListener {
+            loadProfile()
+        }
+    }
 
-        pathRef.putFile(profilePic)
-            .addOnSuccessListener {
-                pathRef.downloadUrl
-                    .addOnSuccessListener { downloadUrl ->
-                        updateProfilePic(downloadUrl.toString())
-                        db.collection("UserProfiles").document(_user.value.uid)
-                            .set(_user.value)
-                            .addOnSuccessListener { documentReference ->
-                                Log.d("mine", "document added with id ${_user.value.uid}")
-                            }
-                            .addOnFailureListener { e ->
-                                Log.d("mine", "error in uploading", e)
-                            }
-                    }
-                    .addOnFailureListener {
-                        deleteProfilePic(storageRef)
-                    }
-            }
-            .addOnFailureListener { e->
-                Log.d("mine", "image not uploaded ${e.message}")
-            }
-
+    fun logout() {
+        auth.signOut()
     }
 
     private fun generateUniqueImageName(extension: String = "jpg"): String {
@@ -100,4 +116,18 @@ class ProfileViewModel: ViewModel(){
         return "IMG_${timestamp}_$uuid.$extension"
     }
 
+    fun createTimestamp(dateModel: DateModel): Timestamp {
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.YEAR, dateModel.year)
+            set(Calendar.MONTH, dateModel.month - 1)
+            set(Calendar.DAY_OF_MONTH, dateModel.day)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        val date = calendar.time
+        return Timestamp(date)
+    }
 }

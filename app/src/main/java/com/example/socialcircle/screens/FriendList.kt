@@ -25,6 +25,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -35,15 +36,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.socialcircle.R
 import com.example.socialcircle.viewModels.FriendsViewModel
 
 
 @Composable
-fun FriendList(friendsViewModel: FriendsViewModel = viewModel(), onChatClick: (String) -> Unit) {
+fun FriendList(friendsViewModel: FriendsViewModel = viewModel(), onChatClick: (String) -> Unit, mainNavController: NavController) {
 
     SideEffect {
         friendsViewModel.getFriendProfiles()
@@ -51,69 +56,85 @@ fun FriendList(friendsViewModel: FriendsViewModel = viewModel(), onChatClick: (S
 
     val friends by friendsViewModel.friendList.collectAsState()
 
-    LazyColumn( modifier = Modifier.fillMaxSize() ) {
-        items(friends) { friend ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { }
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(
-                            brush = Brush.radialGradient(
-                                listOf(
-                                    Color(0xFFB3E5FC),
-                                    Color(0xFF40C4FF),
-                                    Color(0xFF0091EA)
-                                )
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = friend.photoUrl,
-                        contentDescription = "${friend.name}'s profile picture",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(54.dp)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                    )
-                }
-
-                Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
-                    Text(
-                        text = friend.name,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Text(
-                        text = friend.userName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                }
-
-                Button(
-                    onClick = { friendsViewModel },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Gray
-                    ),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Row {
-                        Text("Remove", style = MaterialTheme.typography.bodyMedium)
-                        Icon(Icons.Default.PersonRemove, contentDescription = "Remove Friend")
-                    }
+    if(friends.isEmpty()){
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text( "No Friends Yet", fontSize = 20.sp, fontWeight = FontWeight.SemiBold )
+                TextButton(onClick = { mainNavController.navigate(MainScreens.Discover) { popUpTo(0) } }) {
+                    Text("Discover People")
                 }
             }
-            HorizontalDivider()
+        }
+    }
+
+    else {
+        LazyColumn( modifier = Modifier.fillMaxSize() ) {
+            items(friends) { friend ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { }
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    listOf(
+                                        Color(0xFFB3E5FC),
+                                        Color(0xFF40C4FF),
+                                        Color(0xFF0091EA)
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = friend.photoUrl,
+                            placeholder = painterResource(R.drawable.profile),
+                            contentDescription = "${friend.name}'s profile picture",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                        )
+                    }
+
+                    Column(modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)) {
+                        Text(
+                            text = friend.name,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = friend.userName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+
+                    Button(
+                        onClick = { friendsViewModel.removeFriend(friend.uid) },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.LightGray
+                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Row {
+                            Text("Remove", style = MaterialTheme.typography.bodyMedium)
+                            Icon(Icons.Default.PersonRemove, contentDescription = "Remove Friend")
+                        }
+                    }
+                }
+                HorizontalDivider()
+            }
         }
     }
 }

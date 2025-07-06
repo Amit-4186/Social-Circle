@@ -59,7 +59,7 @@ fun FriendScreen(friendsViewModel: FriendsViewModel, mainNavController: NavContr
             }
         }
         when (selectedTabIndex) {
-            0 -> FriendList(friendsViewModel, onChatClick)
+            0 -> FriendList(friendsViewModel, onChatClick, mainNavController)
             1 -> FriendsRequest(friendsViewModel)
         }
     }

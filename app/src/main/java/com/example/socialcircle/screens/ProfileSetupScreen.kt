@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.socialcircle.R
-import com.example.socialcircle.viewModels.ProfileViewModel
+import com.example.socialcircle.viewModels.ProfileSetupViewModel
 import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -95,7 +95,7 @@ private sealed class DetailScreens(val title: String, val subtitle: String, val 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileSetupScreen(navController: NavController){
-    val viewModel: ProfileViewModel = viewModel()
+    val viewModel: ProfileSetupViewModel = viewModel()
     val context = LocalContext.current
     var currentStepIndex by remember { mutableIntStateOf(0) }
     val currentStep = DetailScreens.steps[currentStepIndex]

@@ -2,6 +2,7 @@ package com.example.socialcircle.screens
 
 import android.location.Location
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -77,13 +79,13 @@ fun DiscoverScreen(
     onEnableGps: () -> Unit,
     lastLocation: Location?,
     discoverViewModel: DiscoverViewModel,
-    onChatClick: (String) -> Unit,
-    onFriendRequest: (String) -> Unit
+    onChatClick: (String) -> Unit
 ) {
     lastLocation?.let {
         Log.d("geopoint", "Lat: ${it.latitude} Lng: ${it.longitude}")
     } ?: Log.d("geopoint", "Waiting for location...")
 
+    val context = LocalContext.current
     val nearby by discoverViewModel.nearbyUsers.collectAsState()
 //    val profileMapCache by friendsViewModel.friendList
 //        .collectAsState()
@@ -160,7 +162,7 @@ fun DiscoverScreen(
                                         modifier = Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(100))
                                     )
                                     Text(
-                                        "Loading...",
+                                        uid,
                                         fontSize = 14.sp,
                                         modifier = Modifier.padding(start = 4.dp)
                                     )
@@ -174,7 +176,11 @@ fun DiscoverScreen(
                                     Icon(Icons.Default.ChatBubble, "Send Chat")
                                 }
                                 IconButton(
-                                    onClick = { onFriendRequest(uid) },
+                                    onClick = { friendsViewModel.sendFriendRequest(
+                                        uid,
+                                        { Toast.makeText( context, "Friend Request Sent", Toast.LENGTH_SHORT ).show() },
+                                        { Toast.makeText(context, "Unexpected Error", Toast.LENGTH_SHORT).show() }
+                                    ) },
                                     modifier = Modifier
                                         .weight(.15f)
                                         .height(18.dp)
