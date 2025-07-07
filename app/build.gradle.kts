@@ -64,6 +64,8 @@ dependencies {
     //Material Dependency
     implementation(libs.androidx.material)
     implementation(libs.androidx.material.icons.extended)
+    //okHttp
+    implementation(libs.okhttp)
 
     implementation("androidx.savedstate:savedstate:1.3.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
