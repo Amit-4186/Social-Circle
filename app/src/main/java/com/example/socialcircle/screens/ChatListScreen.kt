@@ -29,8 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.socialcircle.models.ChatListItem
 import com.example.socialcircle.viewModels.ChatViewModel
@@ -39,7 +37,7 @@ import java.util.Locale
 
 
 @Composable
-fun ChatListScreen(navController: NavController, viewModel: ChatViewModel, onChatClick: (String)->Unit) {
+fun ChatListScreen(viewModel: ChatViewModel, onChatClick: (String)->Unit) {
 
     LaunchedEffect(Unit) {
         viewModel.getChatList()
@@ -95,7 +93,11 @@ fun ChatItemView(
 
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(chat.lastMessageTimestamp!!.toDate()),
+                text = chat.lastMessageTimestamp?.toDate()?.let {
+                    SimpleDateFormat("hh:mm a", Locale.getDefault()).format(it)
+                } ?: "",
+
+//            text = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(chat.lastMessageTimestamp.toDate()),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Gray
             )
@@ -115,5 +117,6 @@ fun ChatItemView(
                 }
             }
         }
+
     }
 }

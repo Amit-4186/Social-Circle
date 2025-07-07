@@ -1,5 +1,6 @@
 package com.example.socialcircle.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,13 +35,16 @@ fun ChatScreen(
     viewModel: ChatViewModel = viewModel(),
     otherUserId: String
 ) {
+    LaunchedEffect(Unit) {
+        Log.d("mine", "started $otherUserId")
+        viewModel.getChatId(otherUserId)
+        viewModel.isChatExists()
+        viewModel.listenForMessages()
+    }
+
     val messages by viewModel.messages.collectAsState()
     val currentUserId = viewModel.user.uid
     var text by remember { mutableStateOf("") }
-
-    LaunchedEffect(Unit) {
-        viewModel.listenForMessages( otherUserId)
-    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         LazyColumn(

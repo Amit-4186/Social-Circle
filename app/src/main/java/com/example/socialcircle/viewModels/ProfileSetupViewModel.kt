@@ -78,7 +78,10 @@ class ProfileSetupViewModel: ViewModel(){
                         db.collection("UserProfiles").document(_user.value.uid)
                             .set(_user.value)
                             .addOnSuccessListener { documentReference ->
-                                Log.d("mine", "document added with id ${_user.value.uid}")
+                                Log.d("mine", "document added with id ${_user.value.userName}")
+                                db.collection("UserNames")
+                                    .document(_user.value.userName)
+                                    .set(mapOf("createdAt" to Timestamp.now()))
                             }
                             .addOnFailureListener { e ->
                                 Log.d("mine", "error in uploading", e)

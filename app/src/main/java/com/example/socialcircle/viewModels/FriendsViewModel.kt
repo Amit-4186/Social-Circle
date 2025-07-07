@@ -55,8 +55,9 @@ class FriendsViewModel : ViewModel() {
             .get()
             .addOnSuccessListener { document ->
                 val result = document.mapNotNull { doc ->
-                    doc.getString("fromUserId")
+                    doc.getString("fromUserid")
                 }
+                Log.d("mine", "${document.size()} ${result.size}")
                 onResult(result)
             }
             .addOnFailureListener { e ->
@@ -112,7 +113,7 @@ class FriendsViewModel : ViewModel() {
         db.collection("FriendRequests")
             .add(
                 RequestModel(
-                    fromUserid = user.uid,
+                    fromUserId = user.uid,
                     toUserId = toUserId,
                     Timestamp(System.currentTimeMillis())
                 ),

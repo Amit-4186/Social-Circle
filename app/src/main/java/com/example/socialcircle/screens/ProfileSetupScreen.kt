@@ -219,10 +219,10 @@ private fun DetailEntry(
                 val datePickerDialog = DatePickerDialog(
                     context,
                     { _, year, month, day ->
-                        data = "$year/${month + 1}/$day"
+                        data = "$year/${month+1}/$day"
                     },
                     2000,
-                    1,
+                    0,
                     1
                 )
 

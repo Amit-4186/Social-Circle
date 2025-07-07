@@ -2,7 +2,6 @@ package com.example.socialcircle.screens
 
 import android.Manifest
 import android.location.LocationManager
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -222,7 +221,6 @@ fun MainScreen(appNavController: NavController) {
                 }
                 composable(MainScreens.ChatList.route) {
                     ChatListScreen(
-                        mainNavController,
                         chatViewModel
                     ) { chatId -> onChatClick(chatId) }
                 }
