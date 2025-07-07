@@ -30,14 +30,14 @@ import com.example.socialcircle.viewModels.AuthenticationViewModel
 import com.example.socialcircle.AppScreens
 
 @Composable
-fun VerificationScreen(viewModel: AuthenticationViewModel, navController: NavController) {
-    val authState by viewModel.authState.collectAsState()
+fun VerificationScreen(authViewModel: AuthenticationViewModel, navController: NavController) {
+    val authState by authViewModel.authState.collectAsState()
     val context = LocalContext.current
 
     LaunchedEffect(authState) {
         when (authState) {
             AuthResultState.EmailVerified -> {
-                navController.navigate(AppScreens.ProfileSetup.route){
+                navController.navigate(AppScreens.ProfileSetup.route) {
                     popUpTo(0) { inclusive = true }
                 }
             }
@@ -56,7 +56,10 @@ fun VerificationScreen(viewModel: AuthenticationViewModel, navController: NavCon
 
     Box(modifier = Modifier.fillMaxSize()) {
         IconButton(
-            onClick = { navController.popBackStack() },
+            onClick = {
+                authViewModel.logout()
+                navController.popBackStack()
+            },
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
@@ -74,23 +77,24 @@ fun VerificationScreen(viewModel: AuthenticationViewModel, navController: NavCon
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(onClick = { viewModel.checkEmailVerification() }) {
+            Button(onClick = { authViewModel.checkEmailVerification() }) {
                 Text("Check Verification Status")
             }
 
             Spacer(Modifier.height(8.dp))
 
-            TextButton(onClick = { viewModel.resendVerificationEmail() }) {
+            TextButton(onClick = { authViewModel.resendVerificationEmail() }) {
                 Text("Resent verification Email")
             }
 
             Spacer(Modifier.height(8.dp))
 
-            when(authState){
+            when (authState) {
                 is AuthResultState.Error -> {
                     val error = (authState as AuthResultState.Error).error
                     Text(error ?: "Unknown Error", color = MaterialTheme.colorScheme.error)
                 }
+
                 AuthResultState.VerificationEmailSent -> Text("(Check your Inbox)")
                 else -> {}
             }

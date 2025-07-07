@@ -1,6 +1,8 @@
 package com.example.socialcircle
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -9,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.socialcircle.screens.ForgotPasswordScreen
+import com.example.socialcircle.screens.LoadingScreen
 import com.example.socialcircle.screens.LoginScreen
 import com.example.socialcircle.screens.MainScreen
 import com.example.socialcircle.screens.ProfileSetupScreen
@@ -19,7 +22,7 @@ sealed class AppScreens(val route: String) {
     object Login : AppScreens("login")
     object Verification : AppScreens("verification")
     object ForgotPassword : AppScreens("forgotPassword")
-    object ProfileSetup: AppScreens(route = "profileSetup")
+    object ProfileSetup : AppScreens(route = "profileSetup")
     object MainNav : AppScreens("mainNav")
 }
 
@@ -29,31 +32,48 @@ fun AppNavigation() {
     val authViewModel: AuthenticationViewModel = viewModel()
 
     val isLogin by remember { mutableStateOf(authViewModel.user != null) }
+    val isVerified by remember { mutableStateOf(authViewModel.user?.isEmailVerified) }
+    val userExists by authViewModel.uidExistsState.collectAsState()
 
-    NavHost(
-        navController = appNavController,
-        startDestination = if (isLogin) AppScreens.MainNav.route else AppScreens.Login.route
-    ) {
+    LaunchedEffect(Unit) {
+        if (isLogin)
+            authViewModel.checkProfileExists(authViewModel.user!!.uid)
+        else {
+            authViewModel.setUidExistsStateFalse()
+        }
+    }
 
-        composable(AppScreens.Login.route) {
-            LoginScreen(authViewModel, appNavController)
+    when (userExists) {
+        null -> {
+            LoadingScreen()
         }
 
-        composable(AppScreens.Verification.route){
-            VerificationScreen(authViewModel, appNavController)
-        }
+        else -> {
+            val initialRoute = if (userExists!!) AppScreens.MainNav.route else AppScreens.ProfileSetup.route
+                NavHost(
+                    navController = appNavController,
+                    startDestination = if (isLogin) initialRoute else if (isVerified!!) AppScreens.Login.route else AppScreens.Verification.route
+                ) {
 
-        composable(AppScreens.ForgotPassword.route){
-            ForgotPasswordScreen(authViewModel, appNavController)
-        }
+                    composable(AppScreens.Login.route) {
+                        LoginScreen(authViewModel, appNavController)
+                    }
 
-        composable(AppScreens.ProfileSetup.route){
-            ProfileSetupScreen(appNavController)
-        }
+                    composable(AppScreens.Verification.route) {
+                        VerificationScreen(authViewModel, appNavController)
+                    }
 
-        composable(AppScreens.MainNav.route) {
-            MainScreen(appNavController)
-        }
+                    composable(AppScreens.ForgotPassword.route) {
+                        ForgotPasswordScreen(authViewModel, appNavController)
+                    }
+
+                    composable(AppScreens.ProfileSetup.route) {
+                        ProfileSetupScreen(appNavController)
+                    }
+
+                    composable(AppScreens.MainNav.route) {
+                        MainScreen(appNavController)
+                    }
 
 //        composable(
 //            route = AppScreens.Chat.route,
@@ -62,5 +82,7 @@ fun AppNavigation() {
 //            val chatId = backStackEntry.arguments?.getString("chatId") ?: return@composable
 //            ChatScreen(chatId)
 //        }
+                }
+        }
     }
 }

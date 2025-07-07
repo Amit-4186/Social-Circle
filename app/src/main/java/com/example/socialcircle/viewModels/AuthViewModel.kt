@@ -8,6 +8,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -19,6 +20,30 @@ class AuthenticationViewModel : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthResultState>(AuthResultState.Idle)
     val authState: StateFlow<AuthResultState> = _authState
+
+    private val _uidExistsState = MutableStateFlow<Boolean?>(null)
+    val uidExistsState: StateFlow<Boolean?> = _uidExistsState
+
+    fun setUidExistsStateFalse() {
+        _uidExistsState.value = false
+    }
+
+    fun checkProfileExists(uid: String) {
+        viewModelScope.launch {
+            FirebaseFirestore.getInstance()
+                .collection("UserProfiles")
+                .document(uid)
+                .get()
+                .addOnSuccessListener { documentSnapshot ->
+                    _uidExistsState.value = documentSnapshot.exists()
+                }
+                .addOnFailureListener {
+                    _uidExistsState.value = null
+                }
+        }
+    }
+
+
 
     fun signupWithEmail(email: String, password: String) {
         viewModelScope.launch {
