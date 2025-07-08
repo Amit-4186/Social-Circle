@@ -1,9 +1,10 @@
 package com.example.socialcircle.models
 
-import java.sql.Timestamp
+import com.google.firebase.Timestamp
+
 
 data class RequestModel(
     val fromUserId: String = "",
     val toUserId: String = "",
-    val timestamp: Timestamp = Timestamp(0)
+    val timestamp: Timestamp = Timestamp.now()
 )

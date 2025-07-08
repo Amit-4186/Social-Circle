@@ -9,7 +9,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
-import java.sql.Timestamp
+import java.util.Calendar
+import com.google.firebase.Timestamp
 
 class FriendsViewModel : ViewModel() {
 
@@ -50,12 +51,13 @@ class FriendsViewModel : ViewModel() {
     }
 
     private fun fetchFriendRequestIds(onResult: (List<String>) -> Unit) {
+        Log.d("mine", "FetchFriendRequestIds called")
         db.collection("FriendRequests")
             .whereEqualTo("toUserId", user.uid)
             .get()
             .addOnSuccessListener { document ->
                 val result = document.mapNotNull { doc ->
-                    doc.getString("fromUserid")
+                    doc.getString("fromUserId")
                 }
                 Log.d("mine", "${document.size()} ${result.size}")
                 onResult(result)
@@ -115,7 +117,7 @@ class FriendsViewModel : ViewModel() {
                 RequestModel(
                     fromUserId = user.uid,
                     toUserId = toUserId,
-                    Timestamp(System.currentTimeMillis())
+                    timestamp = Timestamp.now()
                 ),
             )
             .addOnSuccessListener {
@@ -145,6 +147,7 @@ class FriendsViewModel : ViewModel() {
 
                         val data = mapOf("userId" to fromUserId)
                         val reverseData = mapOf("userId" to user.uid)
+                        val chatId = listOf(user.uid, fromUserId).sorted().joinToString("::")
 
                         currentUserRef.set(data)
                             .continueWithTask {
@@ -153,6 +156,22 @@ class FriendsViewModel : ViewModel() {
                             .addOnSuccessListener {
                                 getFriendProfiles()
                                 getFriendRequests()
+                            }
+
+                        db.collection("Chats")
+                            .document(chatId)
+                            .get()
+                            .addOnSuccessListener { querySnapshot->
+                                if(querySnapshot.exists()){
+                                    Log.d("mine", "changed chat to permanent")
+                                    db.collection("UserProfiles").document(user.uid).collection("Chats")
+                                        .document(chatId)
+                                        .update("temporary", false)
+
+                                    db.collection("UserProfiles").document(fromUserId).collection("Chats")
+                                        .document(chatId)
+                                        .update("temporary", false)
+                                }
                             }
                     }
             }
@@ -180,6 +199,7 @@ class FriendsViewModel : ViewModel() {
         onSuccess: () -> Unit = {},
         onFailure: (e: Exception) -> Unit = {}
     ) {
+        Log.d("mine", "trying to remove")
         val currentUserRef = db.collection("UserProfiles")
             .document(user.uid)
             .collection("Friends")
@@ -188,13 +208,30 @@ class FriendsViewModel : ViewModel() {
             .document(friendUserId)
             .collection("Friends")
             .document(user.uid)
+        val chatId = listOf(user.uid, friendUserId).sorted().joinToString("::")
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.HOUR_OF_DAY, 12)
+
+        val data = mapOf(
+            "temporary" to true,
+            "expireAt" to Timestamp(calendar.time)
+        )
 
         val batch = db.batch()
         batch.delete(currentUserRef)
         batch.delete(otherUserRef)
+        batch.update(
+            db.collection("UserProfiles").document(user.uid).collection("Chats").document(chatId),
+            data
+            )
+        batch.update(
+            db.collection("UserProfiles").document(friendUserId).collection("Chats").document(chatId),
+            data
+        )
 
         batch.commit()
             .addOnSuccessListener {
+                Log.d("mine","removed friend $friendUserId")
                 getFriendProfiles()
                 onSuccess()
             }

@@ -1,10 +1,12 @@
 package com.example.socialcircle.viewModels
 
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialcircle.models.ChatListItem
 import com.example.socialcircle.models.ChatMessage
+import com.example.socialcircle.models.Chats
 import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -24,23 +26,28 @@ class ChatViewModel: ViewModel() {
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     private val _chatList = MutableStateFlow<List<ChatListItem>>(emptyList())
     private lateinit var chatId: String
-    private var isChatExist = false
+    private var _isChatExist = false
+    private val _isFriends = mutableStateOf(false)
 
     val messages = _messages.asStateFlow()
     val chatList = _chatList.asStateFlow()
+
     val user = _user
+    val isFriends = _isFriends
+
+    init{
+        deleteExpiredChats()
+    }
 
     fun getChatId(user2: String) {
         chatId = listOf(user.uid, user2).sorted().joinToString("::")
-        Log.d("mine", chatId)
     }
 
     fun sendMessage(receiverId: String, text: String){
-        Log.d("mine", "ischatExist: $isChatExist $chatId")
         viewModelScope.launch {
-            if (!isChatExist) {
+            if (!_isChatExist) {
                 createChatSession(receiverId)
-                isChatExist = true
+                _isChatExist = true
             }
             db.collection("Chats")
                 .document(chatId)
@@ -86,7 +93,7 @@ class ChatViewModel: ViewModel() {
             }
     }
 
-    fun getChatList(){
+    fun getChatList(){  // this function also removes temporary chats
         db.collection("UserProfiles")
             .document(user.uid)
             .collection("Chats")
@@ -98,45 +105,6 @@ class ChatViewModel: ViewModel() {
                 _chatList.value = chatIds
             }
     }
-
-//    private fun createChatSession(otherUserId: String){
-//        val calendar = Calendar.getInstance()
-//        calendar.add(Calendar.HOUR_OF_DAY, 12)
-//
-//        db.collection("UserProfiles")
-//            .document(user.uid)
-//            .get()
-//            .addOnSuccessListener { user1 ->
-//                db.collection("UserProfiles")
-//                    .document(otherUserId)
-//                    .get()
-//                    .addOnSuccessListener {user2 ->
-//                        db.collection("UserProfiles")
-//                            .document(user.uid)
-//                            .collection("Chats")
-//                            .add(
-//                                ChatListItem(
-//                                    chatId = chatId,
-//                                    otherUserId = otherUserId,
-//                                    profileImageUrl = user1.getString("photoUrl")!!,
-//                                    name = user1.getString("name")!!
-//                                )
-//                            )
-//
-//                        db.collection("UserProfiles")
-//                            .document(otherUserId)
-//                            .get()
-//                            .addOnSuccessListener {
-//                                ChatListItem(
-//                                    chatId = otherUserId,
-//                                    otherUserId = user.uid,
-//                                    profileImageUrl = user2.getString("photoUrl")!!,
-//                                    name = user2.getString("name")!!
-//                                )
-//                            }
-//                    }
-//            }
-//    }
 
     suspend fun createChatSession(otherUserId: String) = coroutineScope{
         val calendar = Calendar.getInstance()
@@ -152,16 +120,22 @@ class ChatViewModel: ViewModel() {
             .get()
             .await()
 
+        val time = Timestamp.now()
+
+
         val addUser1Chat = async {
             db.collection("UserProfiles")
                 .document(user.uid)
                 .collection("Chats")
-                .add(
+                .document(chatId)
+                .set(
                     ChatListItem(
                         chatId = chatId,
                         otherUserId = otherUserId,
                         profileImageUrl = user2Snapshot.getString("photoUrl")!!,
-                        name = user2Snapshot.getString("name")!!
+                        name = user2Snapshot.getString("name")!!,
+                        isTemporary = !_isFriends.value,
+                        expireAt = time
                     )
                 )
         }
@@ -170,26 +144,88 @@ class ChatViewModel: ViewModel() {
             db.collection("UserProfiles")
                 .document(otherUserId)
                 .collection("Chats")
-                .add(
+                .document(chatId)
+                .set(
                     ChatListItem(
                         chatId = chatId,
                         otherUserId = user.uid,
                         profileImageUrl = user1Snapshot.getString("photoUrl")!!,
-                        name = user1Snapshot.getString("name")!!
+                        name = user1Snapshot.getString("name")!!,
+                        isTemporary = !_isFriends.value,
+                        expireAt = time
+                    )
+                )
+        }
+
+        val chat = async{
+            val calendar = Calendar.getInstance()
+            calendar.add(Calendar.HOUR_OF_DAY,  12)
+            db.collection("Chats")
+                .document(chatId)
+                .set(
+                    Chats(
+                        chatId = chatId,
+                        startsAt = time
                     )
                 )
         }
 
         addUser1Chat.await()
         addUser2Chat.await()
+        chat.await()
     }
 
-    suspend fun isChatExists() {
-        val chatSnapshot = db.collection("Chats")
+    fun isChatExists() {
+        db.collection("Chats")
             .document(chatId)
             .get()
-            .await()
+            .addOnSuccessListener {chatSnapshot->
+                _isChatExist = chatSnapshot.exists()
+            }
+    }
 
-        isChatExist = chatSnapshot.exists()
+    fun isFriendsCheck(otherUserId: String){
+        db.collection("UserProfiles")
+            .document(user.uid)
+            .collection("Friends")
+            .document(otherUserId)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                _isFriends.value = snapshot.exists()
+            }
+    }
+
+    fun deleteExpiredChats(){
+        db.collection("UserProfiles")
+            .document(_user.uid)
+            .collection("Chats")
+            .get()
+            .addOnSuccessListener { documentSnapshots ->
+                Log.d("mine", "deleting expired chats ${documentSnapshots.size()}")
+                documentSnapshots.forEach { snapshot ->
+                    Log.d("mine", "this one ${snapshot.getBoolean("temporary")}")
+                    if(snapshot.getBoolean("temporary") == true && snapshot.getTimestamp("expireAt")!! < Timestamp.now()){
+                        deleteChat(snapshot.getString("chatId")!!, snapshot.getString("otherUserId")!!)
+                    }
+                }
+            }
+    }
+
+    fun deleteChat(documentId: String, otherUserId: String){
+        db.collection("UserProfiles")
+            .document(_user.uid)
+            .collection("Chats")
+            .document(documentId)
+            .delete()
+
+        db.collection("UserProfiles")
+            .document(otherUserId)
+            .collection("Chats")
+            .document(documentId)
+            .delete()
+
+        db.collection("Chats")
+            .document(documentId)
+            .delete()
     }
 }
