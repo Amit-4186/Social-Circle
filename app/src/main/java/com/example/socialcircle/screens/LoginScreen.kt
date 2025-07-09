@@ -10,7 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -21,22 +26,60 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.socialcircle.AppScreens
 import com.example.socialcircle.viewModels.AuthResultState
 import com.example.socialcircle.viewModels.AuthenticationViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+class LastCharVisiblePasswordTransformation(
+    private val lastCharVisible: Boolean
+) : VisualTransformation {
+
+    override fun filter(text: AnnotatedString): TransformedText {
+        val input = text.text
+
+        if (input.isEmpty()) return TransformedText(AnnotatedString(""), OffsetMapping.Identity)
+        val masked = buildString {
+            append("•".repeat(maxOf(0, input.length - 1)))
+            append(if (lastCharVisible) input.last() else '•')
+        }
+
+
+        return TransformedText(AnnotatedString(masked), OffsetMapping.Identity)
+    }
+}
+
+
 
 @Composable
 fun LoginScreen(viewModel: AuthenticationViewModel, navController: NavController) {
     val authState by viewModel.authState.collectAsState()
     val context = LocalContext.current
+
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var lastCharVisible by remember { mutableStateOf(false) }
+    var hideCharJob by remember { mutableStateOf<Job?>(null) }
+
+    var confirmLastCharVisible by remember { mutableStateOf(false) }
+    var confirmHideCharJob by remember { mutableStateOf<Job?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -89,19 +132,78 @@ fun LoginScreen(viewModel: AuthenticationViewModel, navController: NavController
 
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                // Detect if new char is added
+                val isAdding = it.length > password.length
+                password = it
+
+                if (isAdding) {
+                    lastCharVisible = true
+                    hideCharJob?.cancel()
+                    hideCharJob = coroutineScope.launch {
+                        delay(1000L)
+                        lastCharVisible = false
+                    }
+                } else {
+                    // If backspacing, hide last char immediately
+                    lastCharVisible = false
+                    hideCharJob?.cancel()
+                }
+            }
+            ,
             label = { Text("Password") },
+            singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            visualTransformation = when {
+                !isLoginMode || passwordVisible -> VisualTransformation.None
+                else -> LastCharVisiblePasswordTransformation(lastCharVisible)
+            }
+            ,
+            trailingIcon = {
+                if(isLoginMode) {
+                    val icon = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = icon, contentDescription = if (passwordVisible) "Hide password" else "Show password")
+                    }
+                }
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
-        if (!isLoginMode) {
-            Spacer(modifier = Modifier.height(8.dp))
+        if(!isLoginMode){
             OutlinedTextField(
                 value = confirmPassword,
-                onValueChange = { confirmPassword = it },
+                onValueChange = {
+                    val isAdding = it.length > confirmPassword.length
+                    confirmPassword = it
+
+                    if (isAdding) {
+                        confirmLastCharVisible = true
+                        confirmHideCharJob?.cancel()
+                        confirmHideCharJob = coroutineScope.launch {
+                            delay(1000L)
+                            confirmLastCharVisible = false
+                        }
+                    } else {
+                        confirmLastCharVisible = false
+                        confirmHideCharJob?.cancel()
+                    }
+                }
+                ,
                 label = { Text("Confirm Password") },
+                singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                visualTransformation = if (confirmPasswordVisible) {
+                    VisualTransformation.None
+                } else {
+                    LastCharVisiblePasswordTransformation(confirmLastCharVisible)
+                },
+                trailingIcon = {
+                    val icon = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                        Icon(imageVector = icon, contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
         }

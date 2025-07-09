@@ -5,12 +5,12 @@ import androidx.lifecycle.ViewModel
 import com.example.socialcircle.models.ProfileDetails
 import com.example.socialcircle.models.RequestModel
 import com.google.firebase.Firebase
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.Calendar
-import com.google.firebase.Timestamp
 
 class FriendsViewModel : ViewModel() {
 
@@ -18,11 +18,9 @@ class FriendsViewModel : ViewModel() {
     private val user = FirebaseAuth.getInstance().currentUser!!
     private val _friendList = MutableStateFlow<List<ProfileDetails>>(emptyList())
     private val _requestList = MutableStateFlow<List<ProfileDetails>>(emptyList())
-//    private val _nearbyProfiles = MutableStateFlow<List<ProfileDetails>>(emptyList())
 
     val friendList = _friendList
     val requestList = _requestList
-//    val nearbyProfile = _nearbyProfiles
 
     fun getFriendProfiles() {
         fetchFriendIds { idList ->
@@ -35,10 +33,6 @@ class FriendsViewModel : ViewModel() {
             fetchProfilesByIds(idList, _requestList)
         }
     }
-
-//    fun getNearbyProfile(userIds: List<String>) {
-//        fetchProfilesByIds(userIds, _nearbyProfiles)
-//    }
 
     private fun fetchFriendIds(onResult: (List<String>) -> Unit) {
         db.collection("UserProfiles").document(user.uid).collection("Friends")

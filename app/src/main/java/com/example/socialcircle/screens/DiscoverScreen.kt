@@ -3,7 +3,6 @@ package com.example.socialcircle.screens
 import android.location.Location
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,11 +18,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.WrongLocation
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,10 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -60,18 +56,13 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.socialcircle.R
-import com.example.socialcircle.models.ProfileDetails
 import com.example.socialcircle.ui.theme.Blue20
 import com.example.socialcircle.viewModels.DiscoverViewModel
 import com.example.socialcircle.viewModels.FriendsViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
-import kotlin.collections.getValue
 
 @Composable
 fun DiscoverScreen(
-    uid: String,
     friendsViewModel: FriendsViewModel,
     hasPermission: Boolean,
     isGpsOn: Boolean,
@@ -86,24 +77,7 @@ fun DiscoverScreen(
     } ?: Log.d("geopoint", "Waiting for location...")
 
     val context = LocalContext.current
-    val nearby by discoverViewModel.nearbyUsers.collectAsState()
-//    val profileMapCache by friendsViewModel.friendList
-//        .collectAsState()
-//        .let { profilesState ->
-//            remember(profilesState) {
-//                derivedStateOf { profilesState.value.associateBy { it.uid } }
-//            }
-//        }
-//    val trigger by discoverViewModel.refreshTrigger.collectAsState()
-////    val profileMapCache = remember { mutableStateMapOf<String, ProfileDetails>() }
-//
-//    LaunchedEffect(trigger) {
-//        friendsViewModel.getNearbyProfile(nearby)
-////        friendsViewModel.fetchFriendsProfiles(nearby)
-////        val temp : MutableStateFlow<List<ProfileDetails>> = MutableStateFlow(emptyList())
-////        friendsViewModel.fetchProfilesByIds(nearby, temp)
-////        profileMapCache.putAll(temp.first().associateBy { it.uid })
-//    }
+    val nearbyProfiles by discoverViewModel.nearbyProfiles.collectAsState()
 
     Box(
         Modifier
@@ -138,7 +112,7 @@ fun DiscoverScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth(.8f)
                     ) {
-                        nearby.forEach { uid ->
+                        nearbyProfiles.forEach { profile ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
@@ -155,29 +129,29 @@ fun DiscoverScreen(
                                         .weight(.7f)
                                         .fillMaxHeight()
                                 ) {
-                                    Image(
-                                        painter = painterResource(R.drawable.profile),
-//                                        placeholder = painterResource(R.drawable.profile),
+                                    AsyncImage(
+                                        model = profile.photoUrl,
+                                        placeholder = painterResource(R.drawable.profile_loading),
                                         contentDescription = "Profile Picture",
                                         modifier = Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(100))
                                     )
                                     Text(
-                                        uid,
+                                        profile.name,
                                         fontSize = 14.sp,
                                         modifier = Modifier.padding(start = 4.dp)
                                     )
                                 }
                                 IconButton(
-                                    onClick = { onChatClick(uid) },
+                                    onClick = { onChatClick(profile.uid) },
                                     modifier = Modifier
                                         .weight(.15f)
                                         .height(18.dp)
                                 ) {
-                                    Icon(Icons.Default.ChatBubble, "Send Chat")
+                                    Icon(Icons.Outlined.ChatBubbleOutline, "Send Chat")
                                 }
                                 IconButton(
                                     onClick = { friendsViewModel.sendFriendRequest(
-                                        uid,
+                                        profile.uid,
                                         { Toast.makeText( context, "Friend Request Sent", Toast.LENGTH_SHORT ).show() },
                                         { Toast.makeText(context, "Unexpected Error", Toast.LENGTH_SHORT).show() }
                                     ) },
@@ -185,7 +159,7 @@ fun DiscoverScreen(
                                         .weight(.15f)
                                         .height(18.dp)
                                 ) {
-                                    Icon(Icons.Default.PersonAdd, "Add Friend")
+                                    Icon(Icons.Outlined.PersonAdd, "Add Friend")
                                 }
                             }
                         }

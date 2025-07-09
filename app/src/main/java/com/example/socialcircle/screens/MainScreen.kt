@@ -44,6 +44,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.socialcircle.ui.theme.Blue20
@@ -62,6 +63,9 @@ sealed class MainScreens(val route: String) {
     object Friend : MainScreens("friend")
     object Profile : MainScreens("profile")
     object ProfileEdit : MainScreens("profileEdit")
+    object Chat: MainScreens("chat/{chatId}"){
+        fun createRoute(chatId: String): String = "chat/$chatId"
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,7 +74,7 @@ fun MainScreen(appNavController: NavController) {
     val mainNavController = rememberNavController()
 
     fun onChatClick(chatId: String) {
-        mainNavController.navigate("chat/$chatId") {
+        mainNavController.navigate(MainScreens.Chat.createRoute(chatId)) {
             launchSingleTop = true
             restoreState = true
         }
@@ -86,6 +90,7 @@ fun MainScreen(appNavController: NavController) {
     val chatViewModel: ChatViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
 
+    val navBackStackEntry by mainNavController.currentBackStackEntryAsState()
     var currentScreen by remember { mutableStateOf<MainScreens>(MainScreens.Discover) }
 
     var hasPermission by remember {
@@ -137,7 +142,7 @@ fun MainScreen(appNavController: NavController) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            if(navBackStackEntry?.destination?.route?.startsWith("chat/") != true) TopAppBar(
                 title = {
                     Text(text = mainScreenMap[currentScreen]!!, fontWeight = FontWeight.Bold)
                 },
@@ -148,7 +153,7 @@ fun MainScreen(appNavController: NavController) {
             )
         },
         bottomBar = {
-            Surface(
+            if(navBackStackEntry?.destination?.route?.startsWith("chat/") != true) Surface(
                 color = Blue20,
                 shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                 shadowElevation = 8.dp
@@ -204,7 +209,6 @@ fun MainScreen(appNavController: NavController) {
             ) {
                 composable(MainScreens.Discover.route) {
                     DiscoverScreen(
-                        uid = uid!!,
                         hasPermission = hasPermission,
                         isGpsOn = isGpsOn,
                         onRequestPermission = { permLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
@@ -233,11 +237,9 @@ fun MainScreen(appNavController: NavController) {
                 composable(MainScreens.Profile.route) {
                     ProfileScreen(mainNavController, appNavController, profileViewModel)
                 }
-
                 composable(MainScreens.ProfileEdit.route) {
-                    ProfileEditScreen(mainNavController, appNavController, profileViewModel)
+                    ProfileEditScreen(mainNavController, profileViewModel)
                 }
-
                 composable(
                     route = "chat/{chatId}",
                     arguments = listOf(navArgument("chatId") { type = NavType.StringType })

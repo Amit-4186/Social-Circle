@@ -9,6 +9,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.socialcircle.models.ProfileDetails
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -20,14 +21,13 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.location.SettingsClient
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -42,6 +42,7 @@ class DiscoverViewModel(
     private val settingsClient: SettingsClient
 ) : ViewModel() {
     val uid = Firebase.auth.uid
+    private val db = Firebase.firestore
 
     private val firestore = Firebase.firestore
     private val locationCollection = firestore.collection("UserLocation")
@@ -49,11 +50,8 @@ class DiscoverViewModel(
     private val _lastLocation = MutableStateFlow<Location?>(null)
     val lastLocation: StateFlow<Location?> = _lastLocation
 
-    private val _nearbyUsers = MutableStateFlow<List<String>>(emptyList())
-    val nearbyUsers: StateFlow<List<String>> = _nearbyUsers
-
-//    private val _refreshTrigger = MutableStateFlow(0)
-//    val refreshTrigger = _refreshTrigger.asStateFlow()
+    private val _nearbyProfiles = MutableStateFlow<List<ProfileDetails>>(emptyList())
+    val nearbyProfiles = _nearbyProfiles
 
     private var locationUpdatesStarted = false
 
@@ -65,7 +63,6 @@ class DiscoverViewModel(
             "geopoint" to geoPoint,
             "timestamp" to FieldValue.serverTimestamp()
         )
-
         locationCollection.document(uid).set(userLocationData)
     }
 
@@ -83,6 +80,45 @@ class DiscoverViewModel(
         }
     }
 
+    fun fetchNearbyProfiles(
+        userIds: List<String>
+    ) {
+        if (userIds.isEmpty()) {
+            _nearbyProfiles.value = emptyList()
+            return
+        }
+
+        val chunks = userIds.chunked(10)
+        val totalChunks = chunks.size
+        val tempList = mutableListOf<ProfileDetails>()
+        var completedChunks = 0
+
+        for (chunk in chunks) {
+            db.collection("UserProfiles")
+                .whereIn(FieldPath.documentId(), chunk)
+                .get()
+                .addOnSuccessListener { result ->
+                    val users = result.documents.mapNotNull { doc ->
+                        doc.toObject(ProfileDetails::class.java)
+                    }
+                    tempList.addAll(users)
+                    Log.d("mine", "successful ${result.size()}")
+                    completedChunks++
+
+                    if (completedChunks == totalChunks) {
+                        _nearbyProfiles.value = tempList
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e("mine", "failed: ${e.message}")
+                    completedChunks++
+                    if (completedChunks == totalChunks) {
+                        _nearbyProfiles.value = tempList
+                    }
+                }
+        }
+    }
+
     fun refreshNearby(currentLoc: Location) {
         viewModelScope.launch{
             val allDocs = firestore.collection("UserLocation").get().await()
@@ -94,7 +130,8 @@ class DiscoverViewModel(
                 )
                 if (dist <= 2.0) doc.id else null
             }
-            _nearbyUsers.value = nearby
+            fetchNearbyProfiles(nearby)
+//            _nearbyUserIds.value = nearby
 //            _refreshTrigger.update { it + 1 }
         }
     }

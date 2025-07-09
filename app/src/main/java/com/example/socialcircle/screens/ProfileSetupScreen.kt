@@ -249,11 +249,9 @@ private fun DetailEntry(
 
                 Image(
                     if (pictureUri != null) {
-                        // If a picture is selected, use Coil to load it from the URI
                         rememberAsyncImagePainter(model = pictureUri)
                     } else {
-                        // Otherwise, show the default profile picture
-                        painterResource(R.drawable.profile) // Make sure you have 'profile.png' or similar in drawable
+                        painterResource(R.drawable.profile_loading)
                     },
                     "",
                     Modifier

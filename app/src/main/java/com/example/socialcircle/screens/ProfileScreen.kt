@@ -105,7 +105,7 @@ fun ProfileScreen(
                         TextButton(
                             onClick = {
                                 profileViewModel.logout()
-                                appNavController.navigate(AppScreens.Login) { popUpTo(0) }
+                                appNavController.navigate(AppScreens.Login.route) { popUpTo(0) }
                             },
                             colors = ButtonDefaults.textButtonColors(
                                 contentColor = MaterialTheme.colorScheme.error
@@ -135,7 +135,7 @@ fun ProfileScreen(
             AsyncImage(
                 model = user.photoUrl,
                 contentDescription = "Profile Picture",
-                placeholder = painterResource(R.drawable.profile),
+                placeholder = painterResource(R.drawable.profile_loading),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(120.dp)
@@ -143,7 +143,7 @@ fun ProfileScreen(
                     .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
             )
         } ?: Image(
-            painterResource(R.drawable.profile),
+            painterResource(R.drawable.profile_loading),
             contentDescription = "Empty Profile Pic",
             modifier = Modifier
                 .size(120.dp)

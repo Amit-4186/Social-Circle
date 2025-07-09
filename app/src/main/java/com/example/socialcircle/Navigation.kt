@@ -32,7 +32,7 @@ fun AppNavigation() {
     val authViewModel: AuthenticationViewModel = viewModel()
 
     val isLogin by remember { mutableStateOf(authViewModel.user != null) }
-    val isVerified by remember { mutableStateOf(authViewModel.user?.isEmailVerified) }
+    val isVerified by remember { mutableStateOf(authViewModel.user?.isEmailVerified?:false) }
     val userExists by authViewModel.uidExistsState.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -52,7 +52,7 @@ fun AppNavigation() {
             val initialRoute = if (userExists!!) AppScreens.MainNav.route else AppScreens.ProfileSetup.route
                 NavHost(
                     navController = appNavController,
-                    startDestination = if (isLogin) initialRoute else if (isVerified!!) AppScreens.Login.route else AppScreens.Verification.route
+                    startDestination = if (isLogin && isVerified) initialRoute else if (isLogin) AppScreens.Verification.route else AppScreens.Login.route
                 ) {
 
                     composable(AppScreens.Login.route) {

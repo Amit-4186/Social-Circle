@@ -7,7 +7,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,13 +14,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -65,7 +62,6 @@ import java.util.Calendar
 @Composable
 fun ProfileEditScreen(
     mainNavController: NavController,
-    appNavController: NavController,
     viewModel: ProfileViewModel = viewModel()
 ) {
 
@@ -105,7 +101,7 @@ fun ProfileEditScreen(
                 AsyncImage(
                     model = photoUrl,
                     contentDescription = "Profile Picture",
-                    placeholder = painterResource(R.drawable.profile),
+                    placeholder = painterResource(R.drawable.profile_loading),
                     contentScale = ContentScale.Crop,
                     modifier = imageModifier
                 )
@@ -248,12 +244,12 @@ fun ProfileEditScreen(
                     if (phone != profile!!.phoneNumber) viewModel.updatePhoneNumber(phone)
                     if (username != profile!!.userName) viewModel.updateUserName(username)
                     selectedPhotoUri?.let {
-                        viewModel.updateProfilePic(it, { result ->
+                        viewModel.updateProfilePic(it) { result ->
                             if (result) Toast.makeText(context, "Successful", Toast.LENGTH_SHORT)
                                 .show()
                             else Toast.makeText(context, "Couldn't upload image", Toast.LENGTH_LONG)
                                 .show()
-                        })
+                        }
                     }
                     mainNavController.popBackStack()
                 },
