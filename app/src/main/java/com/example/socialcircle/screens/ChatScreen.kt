@@ -1,23 +1,35 @@
 package com.example.socialcircle.screens
 
 import android.util.Log
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,12 +40,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.socialcircle.models.ChatMessage
+import com.example.socialcircle.ui.theme.Blue10
+import com.example.socialcircle.ui.theme.Blue20
+import com.example.socialcircle.ui.theme.Gray10
 import com.example.socialcircle.viewModels.ChatViewModel
 
 
@@ -50,18 +67,30 @@ fun ChatScreen(
         viewModel.listenForMessages()
     }
 
-    val isFriends = viewModel.isFriends.value
-
-    if(isFriends) {
-        NoteMessageBubble("You're in a temporary chat. Messages here will disappear 12 hours after they're created.")
+    val scrollState = rememberScrollState()
+    val textLayoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
+    val isScrollable = remember(textLayoutResult.value) {
+        val lineCount = textLayoutResult.value?.lineCount ?: 0
+        lineCount > 5
     }
+
+    val isFriends = viewModel.isFriends.value
+    var showNotes by remember { mutableStateOf(true) }
+
     val messages by viewModel.messages.collectAsState()
     val currentUserId = viewModel.user.uid
     var text by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .imePadding()) {
+        if (!isFriends && showNotes) {
+            NoteMessageBubble { showNotes = false }
+        }
         LazyColumn(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
             reverseLayout = true
         ) {
             items(messages.reversed()) { message ->
@@ -69,21 +98,44 @@ fun ChatScreen(
             }
         }
 
-        Row(modifier = Modifier
-            .padding(8.dp)
-            .fillMaxWidth()) {
-            TextField(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth()
+        ) {
+            OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                modifier = Modifier.weight(1f)
+                shape = RoundedCornerShape(30.dp),
+                placeholder = { Text("Message") },
+                maxLines = 4,
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 56.dp)
+                    .padding(4.dp)
+                    .verticalScroll(if (isScrollable) scrollState else ScrollState(0)),
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    imeAction = ImeAction.Default
+                )
             )
-            Button(onClick = {
-                if (text.isNotBlank()) {
-                    viewModel.sendMessage( otherUserId, text)
-                    text = ""
-                }
-            }) {
-                Text("Send")
+            IconButton(
+                onClick = {
+                    if (text.isNotBlank()) {
+                        viewModel.sendMessage(otherUserId, text)
+                        text = ""
+                    }
+                },
+                modifier = Modifier
+                    .height(48.dp)
+                    .aspectRatio(1f)
+                    .background(Blue20, shape = CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Default.Send,
+                    contentDescription = "Send",
+                    tint = Color.White
+                )
             }
         }
     }
@@ -100,8 +152,9 @@ fun MessageBubble(message: ChatMessage, isCurrentUser: Boolean) {
     ) {
         Box(
             modifier = Modifier
+                .widthIn(min = 100.dp)
                 .background(
-                    if (isCurrentUser) Color(0xFFDCF8C6) else Color(0xFFEDEDED),
+                    if (isCurrentUser) Blue10 else Gray10,
                     shape = RoundedCornerShape(8.dp)
                 )
                 .padding(8.dp)
@@ -112,37 +165,50 @@ fun MessageBubble(message: ChatMessage, isCurrentUser: Boolean) {
 }
 
 @Composable
-fun NoteMessageBubble(note: String) {
+fun NoteMessageBubble(removeNote: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 4.dp, horizontal = 8.dp)
+            .background(
+                color = Blue10,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .border(0.5.dp, Blue20, RoundedCornerShape(12.dp)),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier
-                .background(
-                    color = Color(0xFFD9FDD3), // WhatsApp greenish bubble
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .padding(12.dp)
-                .widthIn(max = 280.dp)
+        Box(
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 text = "Note",
-                color = Color(0xFF075E54),
+                color = Blue20,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.align(Alignment.TopCenter)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+
             Text(
-                text = note,
-                fontSize = 16.sp,
-                color = Color.Black
+                text = "x", fontSize = 18.sp, color = Blue20
+                , modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(horizontal = 8.dp)
+                    .clickable(onClick = removeNote)
             )
         }
+
+        Text(
+            text = """You're in a temporary chat. Messages will disappear after 12 hours from starting. Become friends to make it permanent""",
+            fontSize = 14.sp,
+            lineHeight = 18.sp,
+            textAlign = TextAlign.Justify,
+            color = Color.Black,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .padding(start = 8.dp, bottom = 8.dp, end = 8.dp)
+                .fillMaxWidth()
+        )
     }
 }
 
