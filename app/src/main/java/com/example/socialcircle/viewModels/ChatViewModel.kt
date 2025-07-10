@@ -10,6 +10,7 @@ import com.example.socialcircle.models.Chats
 import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -60,6 +61,28 @@ class ChatViewModel: ViewModel() {
                         timestamp = Timestamp.now()
                     )
                 )
+
+            db.collection("UserProfiles")
+                .document(user.uid)
+                .collection("Chats")
+                .document(chatId)
+                .update(
+                    mapOf(
+                        "lastMessage" to text,
+                        "lastMessageTimestamp" to Timestamp.now()
+                    )
+                )
+
+            db.collection("UserProfiles")
+                .document(receiverId)
+                .collection("Chats")
+                .document(chatId)
+                .update(
+                    mapOf(
+                        "lastMessage" to text,
+                        "lastMessageTimestamp" to Timestamp.now()
+                    )
+                )
         }
     }
 
@@ -68,7 +91,7 @@ class ChatViewModel: ViewModel() {
         db.collection("Chats")
             .document(chatId)
             .collection("messages")
-            .orderBy("timestamp")
+            .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
 
                 if(error != null){

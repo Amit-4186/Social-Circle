@@ -93,7 +93,7 @@ fun ChatScreen(
                 .padding(horizontal = 8.dp),
             reverseLayout = true
         ) {
-            items(messages.reversed()) { message ->
+            items(messages) { message ->
                 MessageBubble(message, isCurrentUser = message.senderId == currentUserId)
             }
         }
@@ -155,7 +155,7 @@ fun MessageBubble(message: ChatMessage, isCurrentUser: Boolean) {
                 .widthIn(min = 100.dp)
                 .background(
                     if (isCurrentUser) Blue10 else Gray10,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(16.dp)
                 )
                 .padding(8.dp)
         ) {

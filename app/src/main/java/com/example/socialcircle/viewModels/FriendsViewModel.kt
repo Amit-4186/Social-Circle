@@ -107,18 +107,26 @@ class FriendsViewModel : ViewModel() {
         onFailure: (e: Exception) -> Unit
     ) {
         db.collection("FriendRequests")
-            .add(
-                RequestModel(
-                    fromUserId = user.uid,
-                    toUserId = toUserId,
-                    timestamp = Timestamp.now()
-                ),
-            )
-            .addOnSuccessListener {
-                onSuccess()
-            }
-            .addOnFailureListener { e ->
-                onFailure(e)
+            .whereEqualTo("fromUserId", user.uid)
+            .whereEqualTo("toUserId",toUserId)
+            .get()
+            .addOnSuccessListener{ result->
+                if(result.isEmpty){
+                    db.collection("FriendRequests")
+                        .add(
+                            RequestModel(
+                                fromUserId = user.uid,
+                                toUserId = toUserId,
+                                timestamp = Timestamp.now()
+                            ),
+                        )
+                        .addOnSuccessListener {
+                            onSuccess()
+                        }
+                        .addOnFailureListener { e ->
+                            onFailure(e)
+                        }
+                }
             }
     }
 
@@ -203,6 +211,14 @@ class FriendsViewModel : ViewModel() {
             .collection("Friends")
             .document(user.uid)
         val chatId = listOf(user.uid, friendUserId).sorted().joinToString("::")
+        val userChatRef = db.collection("UserProfiles")
+            .document(user.uid)
+            .collection("Chats")
+            .document(chatId)
+        val otherChatRef = db.collection("UserProfiles")
+            .document(friendUserId)
+            .collection("Chats")
+            .document(chatId)
         val calendar = Calendar.getInstance()
         calendar.add(Calendar.HOUR_OF_DAY, 12)
 
@@ -211,26 +227,25 @@ class FriendsViewModel : ViewModel() {
             "expireAt" to Timestamp(calendar.time)
         )
 
-        val batch = db.batch()
-        batch.delete(currentUserRef)
-        batch.delete(otherUserRef)
-        batch.update(
-            db.collection("UserProfiles").document(user.uid).collection("Chats").document(chatId),
-            data
-            )
-        batch.update(
-            db.collection("UserProfiles").document(friendUserId).collection("Chats").document(chatId),
-            data
-        )
-
-        batch.commit()
-            .addOnSuccessListener {
-                Log.d("mine","removed friend $friendUserId")
-                getFriendProfiles()
-                onSuccess()
-            }
-            .addOnFailureListener { e ->
-                onFailure(e)
+        userChatRef.get()
+            .addOnSuccessListener { snapshot->
+                val batch = db.batch()
+                batch.delete(currentUserRef)
+                batch.delete(otherUserRef)
+                if(snapshot.exists()) {
+                    batch.update(userChatRef, data)
+                    batch.update(otherChatRef, data)
+                }
+                batch.commit()
+                    .addOnSuccessListener {
+                        Log.d("mine", "removed friend $friendUserId")
+                        getFriendProfiles()
+                        onSuccess()
+                    }
+                    .addOnFailureListener { e ->
+                        Log.d("mine", "failed to remove")
+                        onFailure(e)
+                    }
             }
     }
 }
