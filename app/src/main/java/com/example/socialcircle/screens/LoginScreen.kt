@@ -155,7 +155,7 @@ fun LoginScreen(viewModel: AuthenticationViewModel, navController: NavController
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             visualTransformation = when {
-                !isLoginMode || passwordVisible -> VisualTransformation.None
+                passwordVisible -> VisualTransformation.None
                 else -> LastCharVisiblePasswordTransformation(lastCharVisible)
             }
             ,
