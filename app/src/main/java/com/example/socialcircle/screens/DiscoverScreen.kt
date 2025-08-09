@@ -1,7 +1,6 @@
 package com.example.socialcircle.screens
 
 import android.location.Location
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -72,9 +71,13 @@ fun DiscoverScreen(
     discoverViewModel: DiscoverViewModel,
     onChatClick: (String) -> Unit
 ) {
-    lastLocation?.let {
-        Log.d("geopoint", "Lat: ${it.latitude} Lng: ${it.longitude}")
-    } ?: Log.d("geopoint", "Waiting for location...")
+//    lastLocation?.let {
+//        Log.d("geopoint", "Lat: ${it.latitude} Lng: ${it.longitude}")
+//    } ?: Log.d("geopoint", "Waiting for location...")
+    LaunchedEffect(isGpsOn, hasPermission) {
+        lastLocation?.let { discoverViewModel.refreshNearby(it) }
+    }
+    lastLocation?.let { discoverViewModel.refreshNearby(it) }
 
     val context = LocalContext.current
     val nearbyProfiles by discoverViewModel.nearbyProfiles.collectAsState()
@@ -112,54 +115,59 @@ fun DiscoverScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth(.8f)
                     ) {
-                        nearbyProfiles.forEach { profile ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .height(48.dp)
-                                    .background(
-                                        color = Color.White.copy(alpha = .4f),
-                                        RoundedCornerShape(12.dp)
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .weight(.7f)
-                                        .fillMaxHeight()
-                                ) {
-                                    AsyncImage(
-                                        model = profile.photoUrl,
-                                        placeholder = painterResource(R.drawable.profile_loading),
-                                        contentDescription = "Profile Picture",
-                                        modifier = Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(100))
-                                    )
-                                    Text(
-                                        profile.name,
-                                        fontSize = 14.sp,
-                                        modifier = Modifier.padding(start = 4.dp)
-                                    )
-                                }
-                                IconButton(
-                                    onClick = { onChatClick(profile.uid) },
-                                    modifier = Modifier
-                                        .weight(.15f)
-                                        .height(18.dp)
-                                ) {
-                                    Icon(Icons.Outlined.ChatBubbleOutline, "Send Chat")
-                                }
-                                IconButton(
-                                    onClick = { friendsViewModel.sendFriendRequest(
-                                        profile.uid,
-                                        { Toast.makeText( context, "Friend Request Sent", Toast.LENGTH_SHORT ).show() },
-                                        { Toast.makeText(context, "Unexpected Error", Toast.LENGTH_SHORT).show() }
-                                    ) },
-                                    modifier = Modifier
-                                        .weight(.15f)
-                                        .height(18.dp)
-                                ) {
-                                    Icon(Icons.Outlined.PersonAdd, "Add Friend")
+                        when{
+                            nearbyProfiles.isEmpty() -> Text("No People Nearby..")
+                            else -> nearbyProfiles.forEach { profile ->
+                                if(profile.uid != discoverViewModel.uid){
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .height(48.dp)
+                                            .background(
+                                                color = Color.White.copy(alpha = .4f),
+                                                RoundedCornerShape(12.dp)
+                                            )
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .weight(.7f)
+                                                .fillMaxHeight()
+                                        ) {
+                                            AsyncImage(
+                                                model = profile.photoUrl,
+                                                placeholder = painterResource(R.drawable.profile_loading),
+                                                contentDescription = "Profile Picture",
+                                                modifier = Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(100))
+                                            )
+                                            Text(
+                                                profile.name,
+                                                fontSize = 14.sp,
+                                                modifier = Modifier.padding(start = 4.dp)
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { onChatClick(profile.uid) },
+                                            modifier = Modifier
+                                                .weight(.15f)
+                                                .height(18.dp)
+                                        ) {
+                                            Icon(Icons.Outlined.ChatBubbleOutline, "Send Chat")
+                                        }
+                                        IconButton(
+                                            onClick = { friendsViewModel.sendFriendRequest(
+                                                profile.uid,
+                                                { Toast.makeText( context, "Friend Request Sent", Toast.LENGTH_SHORT ).show() },
+                                                { Toast.makeText(context, "Unexpected Error", Toast.LENGTH_SHORT).show() }
+                                            ) },
+                                            modifier = Modifier
+                                                .weight(.15f)
+                                                .height(18.dp)
+                                        ) {
+                                            Icon(Icons.Outlined.PersonAdd, "Add Friend")
+                                        }
+                                    }
                                 }
                             }
                         }
