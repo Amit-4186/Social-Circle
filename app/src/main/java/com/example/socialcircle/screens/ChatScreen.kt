@@ -1,6 +1,5 @@
 package com.example.socialcircle.screens
 
-import android.util.Log
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,11 +59,17 @@ fun ChatScreen(
     otherUserId: String
 ) {
     LaunchedEffect(Unit) {
-        Log.d("mine", "started $otherUserId")
         viewModel.getChatId(otherUserId)
         viewModel.isChatExists()
         viewModel.isFriendsCheck(otherUserId)
+        viewModel.loadOldMessages(true)
         viewModel.listenForMessages()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.removeMessageListener()
+        }
     }
 
     val scrollState = rememberScrollState()
@@ -93,8 +98,12 @@ fun ChatScreen(
                 .padding(horizontal = 8.dp),
             reverseLayout = true
         ) {
-            items(messages) { message ->
-                MessageBubble(message, isCurrentUser = message.senderId == currentUserId)
+            items(messages.size){index->
+                MessageBubble(messages[index], isCurrentUser = messages[index].senderId == currentUserId)
+
+                if (index == messages.lastIndex) {
+                    viewModel.loadOldMessages(false)
+                }
             }
         }
 
