@@ -61,7 +61,7 @@ class SplashViewModel(private val currentVersionCode: Int) : ViewModel() {
 
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("Failed to fetch config")
-            val body = response.body.string()
+            val body = response.body?.string()
             val json = JSONObject(body)
             return RemoteConfig(
                 latestVersionCode = json.getInt("latestVersionCode"),
@@ -82,7 +82,6 @@ object NetworkUtils {
                 it.isSuccessful
             }
         } catch (e: Exception) {
-            Log.d("mine", e.message.toString())
             false
         }
     }

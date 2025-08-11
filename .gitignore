@@ -17,7 +17,3 @@ local.properties
 /app/build/
 /app/release/
 /app/google-services.json
-
-/app/build/
-/app/release/
-/app/google-services.json

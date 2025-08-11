@@ -10,8 +10,6 @@ import com.example.socialcircle.models.Chats
 import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.async
@@ -31,11 +29,6 @@ class ChatViewModel: ViewModel() {
     private lateinit var chatId: String
     private var _isChatExist = false
     private val _isFriends = mutableStateOf(false)
-    private var oldestMessage: DocumentSnapshot? = null
-    private val messageLimit: Long = 20
-    private var isLoading = false
-    private var allMessagesLoaded = false
-    private var messageListener: ListenerRegistration? = null
 
     val messages = _messages.asStateFlow()
     val chatList = _chatList.asStateFlow()
@@ -93,81 +86,34 @@ class ChatViewModel: ViewModel() {
         }
     }
 
-    fun loadOldMessages(isInitialLoading: Boolean) {
-        if (isInitialLoading) {
-            allMessagesLoaded = false
-            oldestMessage = null
-        }
+    fun listenForMessages(){
 
-        if (isLoading || allMessagesLoaded) {
-            return
-        }
-
-        isLoading = true
-
-        var query = db.collection("Chats")
+        db.collection("Chats")
             .document(chatId)
             .collection("messages")
             .orderBy("timestamp", Query.Direction.DESCENDING)
-            .limit(messageLimit)
+            .addSnapshotListener { snapshot, error ->
 
-        if (!isInitialLoading) {
-            if (oldestMessage != null) {
-                query = query.startAfter(oldestMessage!!)
-            }
-        }
-
-        query.get()
-            .addOnSuccessListener { snapshot ->
-                isLoading = false
-
-                val olderMessages = snapshot.documents.mapNotNull { doc ->
-                    doc.toObject(ChatMessage::class.java)
+                if(error != null){
+                    Log.e("mine","error in chatListener")
+                    return@addSnapshotListener
                 }
 
-                if (isInitialLoading) {
-                    _messages.value = olderMessages
-                } else {
-                    _messages.value = _messages.value + olderMessages
+                snapshot?.let{
+                    Log.d("mine", "received chat ${snapshot.documents.size}")
+                    val list = it.documents.mapNotNull { doc->
+                        try {
+                            doc.toObject(ChatMessage::class.java)
+                        }
+                        catch(e: Exception){
+                            Log.e("mine", "${e.message}")
+                            ChatMessage(text = "notFound")
+                        }
+                    }
+
+                    _messages.value = list
                 }
-
-                oldestMessage = snapshot.documents.lastOrNull()
-
-                if (olderMessages.isEmpty() && !isInitialLoading) {
-                    allMessagesLoaded = true
-                } else if (snapshot.documents.size < messageLimit && !olderMessages.isEmpty()) {
-                    allMessagesLoaded = true
-                }
-
             }
-            .addOnFailureListener { exception ->
-                isLoading = false
-            }
-    }
-
-    fun listenForMessages() {
-        var query = db.collection("Chats")
-            .document(chatId)
-            .collection("messages")
-            .orderBy("timestamp", Query.Direction.ASCENDING)
-            .startAfter(Timestamp.now())
-
-        query.addSnapshotListener {snapshot, error->
-            if(error != null){
-                return@addSnapshotListener
-            }
-            val newMessages = snapshot?.documentChanges?.mapNotNull { doc ->
-                doc.document.toObject(ChatMessage::class.java)
-            } ?: emptyList()
-            _messages.value = newMessages + _messages.value
-        }
-    }
-
-    fun removeMessageListener(){
-        messageListener?.let{
-            it.remove()
-            messageListener = null
-        }
     }
 
     fun getChatList(){  // this function also removes temporary chats
