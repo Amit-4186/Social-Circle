@@ -9,5 +9,11 @@ data class UserProfile(
     val phoneNumber: String = "",
     val photoUrl: String = "",
     val userName: String = "",
-    val friendCount: Int = 0
+    val friendCount: Int = 0,
+    val status: String = UserStatus.OFFLINE.name
 )
+
+enum class UserStatus{
+    ONLINE,
+    OFFLINE,
+}

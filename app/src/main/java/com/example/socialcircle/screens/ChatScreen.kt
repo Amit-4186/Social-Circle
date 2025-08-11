@@ -8,13 +8,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -38,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
@@ -46,11 +50,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.socialcircle.models.ChatMessage
+import com.example.socialcircle.models.UserStatus
 import com.example.socialcircle.ui.theme.Blue10
 import com.example.socialcircle.ui.theme.Blue20
 import com.example.socialcircle.ui.theme.Gray10
 import com.example.socialcircle.viewModels.ChatViewModel
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -59,6 +66,9 @@ fun ChatScreen(
     otherUserId: String
 ) {
     LaunchedEffect(Unit) {
+        launch {
+            viewModel.getOtherUserInfo(otherUserId)
+        }
         viewModel.getChatId(otherUserId)
         viewModel.isChatExists()
         viewModel.isFriendsCheck(otherUserId)
@@ -69,6 +79,7 @@ fun ChatScreen(
     DisposableEffect(Unit) {
         onDispose {
             viewModel.removeMessageListener()
+            viewModel.removeUserListener()
         }
     }
 
@@ -85,66 +96,104 @@ fun ChatScreen(
     val messages by viewModel.messages.collectAsState()
     val currentUserId = viewModel.user.uid
     var text by remember { mutableStateOf("") }
+    val otherUser = viewModel.otherUser
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .imePadding()) {
-        if (!isFriends && showNotes) {
-            NoteMessageBubble { showNotes = false }
-        }
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 8.dp),
-            reverseLayout = true
-        ) {
-            items(messages.size){index->
-                MessageBubble(messages[index], isCurrentUser = messages[index].senderId == currentUserId)
-
-                if (index == messages.lastIndex) {
-                    viewModel.loadOldMessages(false)
+    Scaffold(
+        Modifier.fillMaxSize(),
+        topBar = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Profile Picture
+                AsyncImage(
+                    model = otherUser.value?.photoUrl?:"",
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                // Name and Status
+                Column {
+                    Text(
+                        text = otherUser.value?.name?:"",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Text(
+                        text = otherUser.value?.status?: UserStatus.OFFLINE.name,
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
                 }
             }
         }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .padding(8.dp)
-                .fillMaxWidth()
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                shape = RoundedCornerShape(30.dp),
-                placeholder = { Text("Message") },
-                maxLines = 4,
+            if (!isFriends && showNotes) {
+                NoteMessageBubble { showNotes = false }
+            }
+            LazyColumn(
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = 56.dp)
-                    .padding(4.dp)
-                    .verticalScroll(if (isScrollable) scrollState else ScrollState(0)),
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Default
-                )
-            )
-            IconButton(
-                onClick = {
-                    if (text.isNotBlank()) {
-                        viewModel.sendMessage(otherUserId, text)
-                        text = ""
-                    }
-                },
-                modifier = Modifier
-                    .height(48.dp)
-                    .aspectRatio(1f)
-                    .background(Blue20, shape = CircleShape)
+                    .padding(horizontal = 8.dp),
+                reverseLayout = true
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Default.Send,
-                    contentDescription = "Send",
-                    tint = Color.White
+                items(messages.size) { index ->
+                    MessageBubble(
+                        messages[index],
+                        isCurrentUser = messages[index].senderId == currentUserId
+                    )
+
+                    if (index == messages.lastIndex) {
+                        viewModel.loadOldMessages(false)
+                    }
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(8.dp)
+                    .fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    shape = RoundedCornerShape(30.dp),
+                    placeholder = { Text("Message") },
+                    maxLines = 4,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 56.dp)
+                        .padding(4.dp)
+                        .verticalScroll(if (isScrollable) scrollState else ScrollState(0)),
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Default
+                    )
                 )
+                IconButton(
+                    onClick = {
+                        if (text.isNotBlank()) {
+                            viewModel.sendMessage(otherUserId, text)
+                            text = ""
+                        }
+                    },
+                    modifier = Modifier
+                        .height(48.dp)
+                        .aspectRatio(1f)
+                        .background(Blue20, shape = CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Default.Send,
+                        contentDescription = "Send",
+                        tint = Color.White
+                    )
+                }
             }
         }
     }

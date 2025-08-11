@@ -1,21 +1,23 @@
 package com.example.socialcircle.viewModels
 
 import android.net.Uri
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.socialcircle.models.DateModel
 import com.example.socialcircle.models.UserProfile
+import com.example.socialcircle.models.UserStatus
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.UUID
 
-class ProfileViewModel : ViewModel() {
+class ProfileViewModel : ViewModel(), DefaultLifecycleObserver{
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
@@ -25,27 +27,46 @@ class ProfileViewModel : ViewModel() {
     private val _profileState = MutableStateFlow<UserProfile?>(null)
     val profileState: StateFlow<UserProfile?> = _profileState
 
+    init{
+        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+    }
+
+    override fun onStop(owner: LifecycleOwner) {
+        setStatus(UserStatus.OFFLINE)
+    }
+
+    override fun onStart(owner: LifecycleOwner) {
+        setStatus(UserStatus.ONLINE)
+    }
+
+    override fun onCleared() {
+        ProcessLifecycleOwner.get().lifecycle.removeObserver(this)
+        super.onCleared()
+    }
+
+    fun setStatus(status: UserStatus){
+        dbRef.update("status", status.name)
+    }
+
     fun loadProfile() {
         if(user == null) {
             return
         }
 
-        viewModelScope.launch {
-            dbRef.get().addOnSuccessListener { doc ->
-                if (doc.exists()) {
-                    val userProfile = UserProfile(
-                        uid = doc.getString("uid") ?: user.uid,
-                        name = doc.getString("name") ?: "",
-                        birthDate = doc.getTimestamp("birthDate"),
-                        phoneNumber = doc.getString("phoneNumber") ?: "",
-                        photoUrl = doc.getString("photoUrl") ?: "",
-                        userName = doc.getString("userName") ?: ""
-                    )
+        dbRef.get().addOnSuccessListener { doc ->
+            if (doc.exists()) {
+                val userProfile = UserProfile(
+                    uid = doc.getString("uid") ?: user.uid,
+                    name = doc.getString("name") ?: "",
+                    birthDate = doc.getTimestamp("birthDate"),
+                    phoneNumber = doc.getString("phoneNumber") ?: "",
+                    photoUrl = doc.getString("photoUrl") ?: "",
+                    userName = doc.getString("userName") ?: ""
+                )
 
-                    dbRef.collection("Friends").get().addOnSuccessListener { friendsSnapshot ->
-                        val count = friendsSnapshot.size()
-                        _profileState.value = userProfile.copy(friendCount = count)
-                    }
+                dbRef.collection("Friends").get().addOnSuccessListener { friendsSnapshot ->
+                    val count = friendsSnapshot.size()
+                    _profileState.value = userProfile.copy(friendCount = count)
                 }
             }
         }

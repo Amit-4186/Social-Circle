@@ -53,8 +53,6 @@ import com.example.socialcircle.viewModels.DiscoverViewModel
 import com.example.socialcircle.viewModels.FriendsViewModel
 import com.example.socialcircle.viewModels.LocationViewModelFactory
 import com.example.socialcircle.viewModels.ProfileViewModel
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
 import kotlinx.coroutines.delay
 
 sealed class MainScreens(val route: String) {
@@ -79,9 +77,6 @@ fun MainScreen(appNavController: NavController) {
             restoreState = true
         }
     }
-
-    val uid = Firebase.auth.uid
-
 
     val context = LocalContext.current
     val discoverViewModel: DiscoverViewModel =

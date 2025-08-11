@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.socialcircle.models.ChatListItem
 import com.example.socialcircle.models.ChatMessage
 import com.example.socialcircle.models.Chats
+import com.example.socialcircle.models.UserProfile
 import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -25,6 +26,7 @@ import java.util.Calendar
 class ChatViewModel: ViewModel() {
 
     private val _user = FirebaseAuth.getInstance().currentUser!!
+    private val _otherUser = mutableStateOf<UserProfile?>(null)
     private val db = Firebase.firestore
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     private val _chatList = MutableStateFlow<List<ChatListItem>>(emptyList())
@@ -36,15 +38,34 @@ class ChatViewModel: ViewModel() {
     private var isLoading = false
     private var allMessagesLoaded = false
     private var messageListener: ListenerRegistration? = null
+    private var otherUserListener: ListenerRegistration? = null
 
     val messages = _messages.asStateFlow()
     val chatList = _chatList.asStateFlow()
 
     val user = _user
     val isFriends = _isFriends
+    val otherUser = _otherUser
 
     init{
         deleteExpiredChats()
+    }
+
+    fun getOtherUserInfo(otherUserId: String){
+        otherUserListener = db.collection("UserProfiles")
+            .document(otherUserId)
+            .addSnapshotListener { snapshot, error ->
+                if(error != null){
+                    return@addSnapshotListener
+                }
+
+                otherUser.value = snapshot?.toObject(UserProfile::class.java)
+            }
+    }
+
+    fun removeUserListener(){
+        otherUserListener?.remove()
+        otherUserListener = null
     }
 
     fun getChatId(user2: String) {
@@ -146,7 +167,7 @@ class ChatViewModel: ViewModel() {
     }
 
     fun listenForMessages() {
-        var query = db.collection("Chats")
+        val query = db.collection("Chats")
             .document(chatId)
             .collection("messages")
             .orderBy("timestamp", Query.Direction.ASCENDING)
