@@ -42,6 +42,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.socialcircle.R
+import com.example.socialcircle.models.ProfileDetails
+import com.example.socialcircle.navigation.MainScreens
 import com.example.socialcircle.viewModels.FriendsViewModel
 
 
@@ -68,117 +70,78 @@ fun FriendList(friendsViewModel: FriendsViewModel = viewModel(), onChatClick: (S
     else {
         LazyColumn( modifier = Modifier.fillMaxSize() ) {
             items(friends) { friend ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .clickable(onClick = { onChatClick(friend.uid) }),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.radialGradient(
-                                    listOf(
-                                        Color(0xFFB3E5FC),
-                                        Color(0xFF40C4FF),
-                                        Color(0xFF0091EA)
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AsyncImage(
-                            model = friend.photoUrl,
-                            placeholder = painterResource(R.drawable.profile_loading),
-                            contentDescription = "${friend.name}'s profile picture",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(54.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                        )
-                    }
-
-                    Column(modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp)) {
-                        Text(
-                            text = friend.name,
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = friend.userName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
-                    }
-
-                    Button(
-                        onClick = { friendsViewModel.removeFriend(friend.uid) },
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.LightGray
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                        modifier = Modifier.height(36.dp)
-                    ) {
-                        Row {
-                            Text("Remove", style = MaterialTheme.typography.bodyMedium)
-                            Icon(Icons.Default.PersonRemove, contentDescription = "Remove Friend")
-                        }
-                    }
+                FriendItem(friend, {friendsViewModel.removeFriend(friend.uid)}) {
+                    onChatClick(friend.uid)
                 }
-                HorizontalDivider()
             }
         }
     }
 }
 
-//@Composable
-//fun FollowerItem(
-//    profile: ProfileDetails,
-//    onClick: () -> Unit
-//) {
-//    Row(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .clickable { onClick() }
-//            .padding(12.dp),
-//        verticalAlignment = Alignment.CenterVertically
-//    ) {
-//        // Circular profile image
-//        AsyncImage(
-//            model = profile.photoUrl,
-//            contentDescription = "Profile Picture",
-//            modifier = Modifier
-//                .size(56.dp)
-//                .clip(CircleShape)
-//        )
-//
-//        Spacer(modifier = Modifier.width(12.dp))
-//
-//        Column(modifier = Modifier.weight(1f)) {
-//            Text(
-//                text = profile.name,
-//                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-//            )
-//            Text(
-//                text = profile.userName, // Optional username/description
-//                style = MaterialTheme.typography.bodySmall,
-//                color = Color.Gray
-//            )
-//        }
-//
-//        // Optional "Follow" / "Following" button
-//        TextButton(
-//            onClick = { /* Handle follow/unfollow */ },
-//            modifier = Modifier
-//                .height(36.dp)
-//        ) {
-//            Text("Following") // or "Follow"
-//        }
-//    }
-//}
+@Composable
+fun FriendItem(friend: ProfileDetails, onFriendRemove: () -> Unit, onChatClick: (String) -> Unit){
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(onClick = { onChatClick(friend.uid) }),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(
+                    brush = Brush.radialGradient(
+                        listOf(
+                            Color(0xFFB3E5FC),
+                            Color(0xFF40C4FF),
+                            Color(0xFF0091EA)
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = friend.photoUrl,
+                placeholder = painterResource(R.drawable.profile_loading),
+                contentDescription = "${friend.name}'s profile picture",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+            )
+        }
+
+        Column(modifier = Modifier
+            .weight(1f)
+            .padding(horizontal = 8.dp)) {
+            Text(
+                text = friend.name,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+            )
+            Text(
+                text = friend.userName,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+        }
+
+        Button(
+            onClick = { onFriendRemove() },
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.LightGray
+            ),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+            modifier = Modifier.height(36.dp)
+        ) {
+            Row {
+                Text("Remove", style = MaterialTheme.typography.bodyMedium)
+                Icon(Icons.Default.PersonRemove, contentDescription = "Remove Friend")
+            }
+        }
+    }
+    HorizontalDivider()
+}

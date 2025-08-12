@@ -10,10 +10,10 @@ data class UserProfile(
     val photoUrl: String = "",
     val userName: String = "",
     val friendCount: Int = 0,
-    val status: String = UserStatus.OFFLINE.name
+    val status: String = UserStatus.Offline.name
 )
 
 enum class UserStatus{
-    ONLINE,
-    OFFLINE,
+    Online,
+    Offline,
 }

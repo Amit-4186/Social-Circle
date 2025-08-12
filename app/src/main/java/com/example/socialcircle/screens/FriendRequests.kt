@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.socialcircle.models.ProfileDetails
 import com.example.socialcircle.ui.theme.Blue20
 import com.example.socialcircle.viewModels.FriendsViewModel
 
@@ -56,81 +57,88 @@ fun FriendsRequest(
 
     if(users.isEmpty()){
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()){
-            Text("No Pending Requests", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text("No Pending Requests", fontSize = 18.sp, fontWeight = FontWeight.Medium)
         }
     }
 
     else {
         LazyColumn {
             items(users) { profile ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {  }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.radialGradient(
-                                    listOf(Color(0xFFB3E5FC),  Color(0xFF40C4FF), Color(0xFF0091EA))
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AsyncImage(
-                            model = profile.photoUrl,
-                            contentDescription = "${profile.name}'s profile picture",
-                            modifier = Modifier
-                                .size(54.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = profile.name,
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = profile.userName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
-                    }
-
-                    Button(
-                        onClick = { friendsViewModel.acceptFriendRequest(profile.uid) },
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Blue20,
-                            contentColor = Color.White
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                        modifier = Modifier.height(36.dp)
-                    ) {
-                        Text("Accept", style = MaterialTheme.typography.bodyMedium)
-                        Icon(Icons.Default.PersonAdd, contentDescription = "Accept Friend Request", tint = Color.White)
-                    }
-
-                    IconButton(
-                        onClick = { friendsViewModel.rejectFriendRequest(profile.uid) },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = Color.Transparent,
-                        ),
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Cancel Request")
-                    }
+                FriendRequestItem(profile, {friendsViewModel.rejectFriendRequest(profile.uid)}) {
+                    friendsViewModel.acceptFriendRequest(profile.uid)
                 }
-                HorizontalDivider()
             }
         }
     }
+}
+
+@Composable
+fun FriendRequestItem(profile: ProfileDetails, rejectRequest:()-> Unit, acceptRequest: ()->Unit){
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {  }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .background(
+                    brush = Brush.radialGradient(
+                        listOf(Color(0xFFB3E5FC),  Color(0xFF40C4FF), Color(0xFF0091EA))
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = profile.photoUrl,
+                contentDescription = "${profile.name}'s profile picture",
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = profile.name,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+            )
+            Text(
+                text = profile.userName,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+        }
+
+        Button(
+            onClick = { acceptRequest() },
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Blue20,
+                contentColor = Color.White
+            ),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+            modifier = Modifier.height(36.dp)
+        ) {
+            Text("Accept", style = MaterialTheme.typography.bodyMedium)
+            Icon(Icons.Default.PersonAdd, contentDescription = "Accept Friend Request", tint = Color.White)
+        }
+
+        IconButton(
+            onClick = { rejectRequest() },
+            colors = IconButtonDefaults.iconButtonColors(
+                containerColor = Color.Transparent,
+            ),
+            modifier = Modifier.size(24.dp)
+        ) {
+            Icon(Icons.Default.Close, contentDescription = "Cancel Request")
+        }
+    }
+    HorizontalDivider()
 }

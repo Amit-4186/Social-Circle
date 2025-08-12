@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.WrongLocation
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -115,10 +116,10 @@ fun DiscoverScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth(.8f)
                     ) {
-                        when{
+                        when {
                             nearbyProfiles.isEmpty() -> Text("No People Nearby..")
                             else -> nearbyProfiles.forEach { profile ->
-                                if(profile.uid != discoverViewModel.uid){
+                                if (profile.uid != discoverViewModel.uid) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier
@@ -139,7 +140,10 @@ fun DiscoverScreen(
                                                 model = profile.photoUrl,
                                                 placeholder = painterResource(R.drawable.profile_loading),
                                                 contentDescription = "Profile Picture",
-                                                modifier = Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(100))
+                                                modifier = Modifier
+                                                    .fillMaxHeight()
+                                                    .aspectRatio(1f)
+                                                    .clip(RoundedCornerShape(100))
                                             )
                                             Text(
                                                 profile.name,
@@ -156,11 +160,25 @@ fun DiscoverScreen(
                                             Icon(Icons.Outlined.ChatBubbleOutline, "Send Chat")
                                         }
                                         IconButton(
-                                            onClick = { friendsViewModel.sendFriendRequest(
-                                                profile.uid,
-                                                { Toast.makeText( context, "Friend Request Sent", Toast.LENGTH_SHORT ).show() },
-                                                { Toast.makeText(context, "Unexpected Error", Toast.LENGTH_SHORT).show() }
-                                            ) },
+                                            onClick = {
+                                                friendsViewModel.sendFriendRequest(
+                                                    profile.uid,
+                                                    {
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Friend Request Sent",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    },
+                                                    {
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Unexpected Error",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
+                                                )
+                                            },
                                             modifier = Modifier
                                                 .weight(.15f)
                                                 .height(18.dp)
@@ -258,7 +276,10 @@ fun LocationEnable(onClick: () -> Unit) {
             "In order to find people nearby and socialise with them, enable your device location.",
             textAlign = TextAlign.Center
         )
-        Button(onClick = onClick, shape = RectangleShape) {
+        Button(
+            onClick = onClick, shape = RectangleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = Blue20)
+            ) {
             Text("Enable GPS", color = Color.White)
         }
     }

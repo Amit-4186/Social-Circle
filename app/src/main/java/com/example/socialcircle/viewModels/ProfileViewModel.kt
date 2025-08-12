@@ -32,11 +32,11 @@ class ProfileViewModel : ViewModel(), DefaultLifecycleObserver{
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        setStatus(UserStatus.OFFLINE)
+        setStatus(UserStatus.Offline)
     }
 
     override fun onStart(owner: LifecycleOwner) {
-        setStatus(UserStatus.ONLINE)
+        setStatus(UserStatus.Online)
     }
 
     override fun onCleared() {

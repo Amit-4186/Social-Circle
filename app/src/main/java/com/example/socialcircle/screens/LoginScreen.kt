@@ -39,7 +39,7 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.socialcircle.AppScreens
+import com.example.socialcircle.navigation.AppScreens
 import com.example.socialcircle.viewModels.AuthResultState
 import com.example.socialcircle.viewModels.AuthenticationViewModel
 import kotlinx.coroutines.Job
@@ -92,7 +92,7 @@ fun LoginScreen(viewModel: AuthenticationViewModel, navController: NavController
 
             is AuthResultState.Success -> {
                 Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
-                navController.navigate(AppScreens.MainNav.route) {
+                navController.navigate(AppScreens.RootNav.route) {
                     popUpTo(0) { inclusive = true }
                 }
             }

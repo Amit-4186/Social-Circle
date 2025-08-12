@@ -1,27 +1,31 @@
-package com.example.socialcircle.screens
+package com.example.socialcircle.navigation
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.location.LocationManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonSearch
+import androidx.compose.material.icons.outlined.ChatBubble
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -39,7 +43,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -47,11 +50,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.socialcircle.screens.ChatListScreen
+import com.example.socialcircle.screens.ChatScreen
+import com.example.socialcircle.screens.DiscoverScreen
+import com.example.socialcircle.screens.FriendScreen
+import com.example.socialcircle.screens.ProfileEditScreen
+import com.example.socialcircle.screens.ProfileScreen
 import com.example.socialcircle.ui.theme.Blue20
 import com.example.socialcircle.viewModels.ChatViewModel
 import com.example.socialcircle.viewModels.DiscoverViewModel
 import com.example.socialcircle.viewModels.FriendsViewModel
-import com.example.socialcircle.viewModels.LocationViewModelFactory
 import com.example.socialcircle.viewModels.ProfileViewModel
 import kotlinx.coroutines.delay
 
@@ -61,39 +69,37 @@ sealed class MainScreens(val route: String) {
     object Friend : MainScreens("friend")
     object Profile : MainScreens("profile")
     object ProfileEdit : MainScreens("profileEdit")
-    object Chat: MainScreens("chat/{chatId}"){
-        fun createRoute(chatId: String): String = "chat/$chatId"
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(appNavController: NavController) {
+fun MainScreen(
+    appNav: NavController, rootNav: NavController,
+    discoverViewModel: DiscoverViewModel,
+    chatViewModel: ChatViewModel,
+    friendsViewModel: FriendsViewModel,
+    profileViewModel: ProfileViewModel
+) {
+
     val mainNavController = rememberNavController()
+    val currentBackStackEntry by mainNavController.currentBackStackEntryAsState()
+    val currentDestination = currentBackStackEntry?.destination
 
     fun onChatClick(chatId: String) {
-        mainNavController.navigate(MainScreens.Chat.createRoute(chatId)) {
+        rootNav.navigate(RootScreens.Chat.createRoute(chatId)) {
             launchSingleTop = true
             restoreState = true
         }
     }
 
     val context = LocalContext.current
-    val discoverViewModel: DiscoverViewModel =
-        viewModel(factory = LocationViewModelFactory(context))
-    val friendsViewModel: FriendsViewModel = viewModel()
-    val chatViewModel: ChatViewModel = viewModel()
-    val profileViewModel: ProfileViewModel = viewModel()
-
-    val navBackStackEntry by mainNavController.currentBackStackEntryAsState()
-    var currentScreen by remember { mutableStateOf<MainScreens>(MainScreens.Discover) }
 
     var hasPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.ACCESS_FINE_LOCATION
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) == PackageManager.PERMISSION_GRANTED
         )
     }
     var isGpsOn by remember { mutableStateOf(false) }
@@ -129,17 +135,20 @@ fun MainScreen(appNavController: NavController) {
     }
 
     val mainScreenMap = mapOf(
-        MainScreens.Discover to "Nearby People",
-        MainScreens.ChatList to "Chats",
-        MainScreens.Friend to "Friends",
-        MainScreens.Profile to "My Profile"
+        MainScreens.Discover.route to "Nearby People",
+        MainScreens.ChatList.route to "Chats",
+        MainScreens.Friend.route to "Friends",
+        MainScreens.Profile.route to "My Profile"
     )
 
     Scaffold(
         topBar = {
-            if(navBackStackEntry?.destination?.route?.startsWith("chat/") != true) TopAppBar(
+            TopAppBar(
                 title = {
-                    Text(text = mainScreenMap[currentScreen]!!, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = mainScreenMap[currentDestination?.route] ?: "",
+                        fontWeight = FontWeight.Bold
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Blue20,
@@ -148,50 +157,46 @@ fun MainScreen(appNavController: NavController) {
             )
         },
         bottomBar = {
-            if(navBackStackEntry?.destination?.route?.startsWith("chat/") != true) Surface(
-                color = Blue20,
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                shadowElevation = 8.dp
+            NavigationBar(
+                containerColor = Blue20,
+                tonalElevation = 4.dp,
+
+                modifier = Modifier.fillMaxWidth()
             ) {
-                NavigationBar(
-                    modifier = Modifier
-                        .height(68.dp)
-                        .padding(horizontal = 16.dp),
-                    containerColor = Color.Transparent,
-                ) {
-                    mainScreenMap.forEach { (screen, _) ->
-                        val selected = currentScreen == screen
+                mainScreenMap.forEach { (screen, _) ->
+                    val selected = currentDestination?.route == screen
 
-                        val icon = when (screen.route) {
-                            MainScreens.Discover.route -> Icons.Filled.People
-                            MainScreens.ChatList.route -> Icons.Filled.ChatBubble
-                            MainScreens.Friend.route -> Icons.Filled.Group
-                            MainScreens.Profile.route -> Icons.Filled.Person
-                            else -> Icons.Filled.Error
-                        }
-
-                        NavigationBarItem(
-                            icon = {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = screen.route,
-                                    tint = if (selected) Blue20 else Color.White,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            },
-                            selected = selected,
-                            onClick = {
-                                currentScreen = screen
-                                mainNavController.navigate(screen.route) {
-                                    popUpTo(mainNavController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
+                    val icon = when (screen) {
+                        MainScreens.Discover.route -> if (selected) Icons.Filled.PersonSearch else Icons.Outlined.PersonSearch
+                        MainScreens.ChatList.route -> if (selected) Icons.Filled.ChatBubble else Icons.Outlined.ChatBubble
+                        MainScreens.Friend.route -> if (selected) Icons.Filled.Group else Icons.Outlined.Group
+                        MainScreens.Profile.route -> if (selected) Icons.Filled.Person else Icons.Outlined.Person
+                        else -> Icons.Filled.Error
                     }
+
+                    NavigationBarItem(
+                        selected = selected,
+                        onClick = {
+                            mainNavController.navigate(screen) {
+                                popUpTo(mainNavController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = screen,
+                                modifier = Modifier.size(26.dp),
+                                tint = if (selected) Color.White else Color.White.copy(alpha = 0.6f)
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = Blue20
+                        )
+                    )
                 }
             }
         }
@@ -230,7 +235,7 @@ fun MainScreen(appNavController: NavController) {
                     ) { chatId -> onChatClick(chatId) }
                 }
                 composable(MainScreens.Profile.route) {
-                    ProfileScreen(mainNavController, appNavController, profileViewModel)
+                    ProfileScreen(mainNavController, appNav, profileViewModel)
                 }
                 composable(MainScreens.ProfileEdit.route) {
                     ProfileEditScreen(mainNavController, profileViewModel)

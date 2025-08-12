@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.example.socialcircle.navigation.AppNavigation
 import com.example.socialcircle.screens.SplashScreen
 import com.example.socialcircle.ui.theme.SocialCircleTheme
 import com.google.firebase.FirebaseApp

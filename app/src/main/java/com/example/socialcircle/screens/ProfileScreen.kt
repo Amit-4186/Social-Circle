@@ -48,8 +48,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.socialcircle.AppScreens
+import com.example.socialcircle.navigation.AppScreens
 import com.example.socialcircle.R
+import com.example.socialcircle.navigation.MainScreens
 import com.example.socialcircle.viewModels.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

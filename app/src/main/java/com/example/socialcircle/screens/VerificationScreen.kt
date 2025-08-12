@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.socialcircle.viewModels.AuthResultState
 import com.example.socialcircle.viewModels.AuthenticationViewModel
-import com.example.socialcircle.AppScreens
+import com.example.socialcircle.navigation.AppScreens
 
 @Composable
 fun VerificationScreen(authViewModel: AuthenticationViewModel, navController: NavController) {

@@ -79,17 +79,20 @@ fun ChatItemView(
             contentScale = ContentScale.Crop
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(8.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = chat.name, fontWeight = FontWeight.Bold)
+            Text(text = chat.name, fontWeight = FontWeight.Medium, fontSize = 18.sp)
             Text(
                 text = chat.lastMessage,
-                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
+
+        Spacer(Modifier.width(8.dp))
 
         Column(horizontalAlignment = Alignment.End) {
             Text(
@@ -117,6 +120,5 @@ fun ChatItemView(
                 }
             }
         }
-
     }
 }
