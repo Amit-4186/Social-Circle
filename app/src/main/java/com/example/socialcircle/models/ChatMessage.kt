@@ -6,7 +6,6 @@ import com.google.firebase.firestore.DocumentId
 data class ChatMessage(
     @DocumentId val id: String = "",
     val senderId: String = "",
-    val receiverId: String= "",
     val text: String = "",
     val timestamp: Timestamp? = null
 )

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,9 +30,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -44,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,13 +83,14 @@ fun ChatScreen(
 ) {
     LaunchedEffect(Unit) {
         launch {
-            chatViewModel.getOtherUserInfo(otherUserId)
+            chatViewModel.getOtherUserListeners(otherUserId)
         }
         chatViewModel.getChatId(otherUserId)
         chatViewModel.isChatExists()
         chatViewModel.isFriendsCheck(otherUserId)
         chatViewModel.loadOldMessages(true)
         chatViewModel.listenForMessages()
+//        chatViewModel.resetRead()
     }
 
     DisposableEffect(Unit) {
@@ -109,6 +114,22 @@ fun ChatScreen(
     val currentUserId = chatViewModel.user.uid
     var text by remember { mutableStateOf("") }
     val otherUser = chatViewModel.otherUser
+    val unread = chatViewModel.unread.intValue
+
+    val listState = rememberLazyListState()
+    val isAtLatestMessage by remember {
+        derivedStateOf {
+            val firstIndex = listState.firstVisibleItemIndex
+            val firstOffset = listState.firstVisibleItemScrollOffset
+
+            firstIndex == 0 && firstOffset < 20
+        }
+    }
+    LaunchedEffect(isAtLatestMessage, messages) {
+        if (isAtLatestMessage && messages.isNotEmpty()) {
+            chatViewModel.resetRead()
+        }
+    }
 
     Scaffold(
         Modifier.fillMaxSize(),
@@ -195,9 +216,13 @@ fun ChatScreen(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 8.dp),
-                    reverseLayout = true
+                    reverseLayout = true,
+                    state = listState
                 ) {
                     items(messages.size) { index ->
+                        if(index == unread){
+                            SeenDivider()
+                        }
                         MessageBubble(
                             messages[index],
                             isCurrentUser = messages[index].senderId == currentUserId
@@ -207,6 +232,7 @@ fun ChatScreen(
                             chatViewModel.loadOldMessages(false)
                         }
                     }
+
                 }
 
                 Row(
@@ -329,3 +355,27 @@ fun NoteMessageBubble(removeNote: () -> Unit) {
     }
 }
 
+@Composable
+fun SeenDivider() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            thickness = DividerDefaults.Thickness, color = Color.Gray
+        )
+        Text(
+            text = "Seen",
+            modifier = Modifier.padding(horizontal = 8.dp),
+            color = Color.Gray,
+            fontSize = 12.sp
+        )
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            thickness = DividerDefaults.Thickness, color = Color.Gray
+        )
+    }
+}

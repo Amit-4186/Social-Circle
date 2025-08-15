@@ -1,6 +1,7 @@
 package com.example.socialcircle.viewModels
 
 import android.util.Log
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,9 +13,11 @@ import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.firestore
+import com.google.firebase.firestore.getField
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +42,9 @@ class ChatViewModel: ViewModel() {
     private var allMessagesLoaded = false
     private var messageListener: ListenerRegistration? = null
     private var otherUserListener: ListenerRegistration? = null
+    private var otherUserChatListener: ListenerRegistration? = null
+    private val _unread = mutableIntStateOf(0)
+    private var newMessage = true
 
     val messages = _messages.asStateFlow()
     val chatList = _chatList.asStateFlow()
@@ -46,12 +52,24 @@ class ChatViewModel: ViewModel() {
     val user = _user
     val isFriends = _isFriends
     val otherUser = _otherUser
+    val unread = _unread
 
     init{
         deleteExpiredChats()
     }
 
-    fun getOtherUserInfo(otherUserId: String){
+    fun resetRead(){
+        if(newMessage) {
+            db.collection("UserProfiles")
+                .document(_user.uid)
+                .collection("Chats")
+                .document(chatId)
+                .update("unreadCount", 0)
+            newMessage = false
+        }
+    }
+
+    fun getOtherUserListeners(otherUserId: String){
         otherUserListener = db.collection("UserProfiles")
             .document(otherUserId)
             .addSnapshotListener { snapshot, error ->
@@ -60,6 +78,20 @@ class ChatViewModel: ViewModel() {
                 }
 
                 otherUser.value = snapshot?.toObject(UserProfile::class.java)
+            }
+
+        otherUserChatListener = db.collection("UserProfiles")
+            .document(otherUserId)
+            .collection("Chats")
+            .document(chatId)
+            .addSnapshotListener { snapshot, error ->
+                if(error != null){
+                    return@addSnapshotListener
+                }
+
+                val unread = snapshot?.getField<Int>("unreadCount")
+
+                _unread.intValue = unread!!
             }
     }
 
@@ -84,7 +116,6 @@ class ChatViewModel: ViewModel() {
                 .add(
                     ChatMessage(
                         senderId = _user.uid,
-                        receiverId = receiverId,
                         text = text,
                         timestamp = Timestamp.now()
                     )
@@ -106,10 +137,9 @@ class ChatViewModel: ViewModel() {
                 .collection("Chats")
                 .document(chatId)
                 .update(
-                    mapOf(
-                        "lastMessage" to text,
-                        "lastMessageTimestamp" to Timestamp.now()
-                    )
+                    "lastMessage", text,
+                    "lastMessageTimestamp", Timestamp.now(),
+                    "unreadCount", FieldValue.increment(1)
                 )
         }
     }
@@ -174,13 +204,14 @@ class ChatViewModel: ViewModel() {
             .startAfter(Timestamp.now())
 
         query.addSnapshotListener {snapshot, error->
-            if(error != null){
+            if(error != null || snapshot == null){
                 return@addSnapshotListener
             }
-            val newMessages = snapshot?.documentChanges?.mapNotNull { doc ->
+            val newMessages = snapshot.documentChanges.mapNotNull { doc ->
                 doc.document.toObject(ChatMessage::class.java)
-            } ?: emptyList()
+            }
             _messages.value = newMessages + _messages.value
+            newMessage = true
         }
     }
 
@@ -191,12 +222,14 @@ class ChatViewModel: ViewModel() {
         }
     }
 
-    fun getChatList(){  // this function also removes temporary chats
+    fun getChatList(){
         db.collection("UserProfiles")
             .document(user.uid)
             .collection("Chats")
-            .get()
-            .addOnSuccessListener { snapshots ->
+            .addSnapshotListener { snapshots, error ->
+                if(error != null || snapshots == null){
+                    return@addSnapshotListener
+                }
                 val chatIds = snapshots.documents.mapNotNull{doc->
                     doc.toObject(ChatListItem::class.java)
                 }
@@ -309,7 +342,7 @@ class ChatViewModel: ViewModel() {
             }
     }
 
-    fun deleteChat(documentId: String, otherUserId: String){
+    private fun deleteChat(documentId: String, otherUserId: String){
         db.collection("UserProfiles")
             .document(_user.uid)
             .collection("Chats")
