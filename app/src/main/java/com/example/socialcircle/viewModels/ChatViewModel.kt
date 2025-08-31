@@ -70,6 +70,8 @@ class ChatViewModel: ViewModel() {
     }
 
     fun getOtherUserListeners(otherUserId: String){
+        otherUserListener?.remove()
+        otherUserChatListener?.remove()
         otherUserListener = db.collection("UserProfiles")
             .document(otherUserId)
             .addSnapshotListener { snapshot, error ->
@@ -98,6 +100,8 @@ class ChatViewModel: ViewModel() {
     fun removeUserListener(){
         otherUserListener?.remove()
         otherUserListener = null
+        otherUserChatListener?.remove()
+        otherUserChatListener = null
     }
 
     fun getChatId(user2: String) {
@@ -203,7 +207,7 @@ class ChatViewModel: ViewModel() {
             .orderBy("timestamp", Query.Direction.ASCENDING)
             .startAfter(Timestamp.now())
 
-        query.addSnapshotListener {snapshot, error->
+        messageListener = query.addSnapshotListener {snapshot, error->
             if(error != null || snapshot == null){
                 return@addSnapshotListener
             }

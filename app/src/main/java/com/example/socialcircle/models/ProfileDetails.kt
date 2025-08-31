@@ -7,6 +7,6 @@ data class ProfileDetails(
     val name: String = "",
     val userName: String = "",
     val phoneNumber: String = "",
-    val birthDate: Timestamp? = null,
-    val photoUrl: String = ""
+    val birthDate: Timestamp? = Timestamp.now(),
+    val photoUrl: String? = null
 )

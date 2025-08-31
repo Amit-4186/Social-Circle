@@ -1,5 +1,6 @@
 package com.example.socialcircle.screens
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -95,6 +96,7 @@ fun ChatScreen(
 
     DisposableEffect(Unit) {
         onDispose {
+            Log.d("mine", "destroyed")
             chatViewModel.removeMessageListener()
             chatViewModel.removeUserListener()
         }

@@ -149,8 +149,8 @@ fun ProfileSetupScreen(navController: NavController){
                     }
                     DetailScreens.ProfilePic -> {
                         Log.d("mine", "profile")
-                        viewModel.profilePic = data.toUri()
-                        viewModel.uploadOnFireStore()
+//                        viewModel.profilePic = data.toUri()
+//                        viewModel.uploadOnFireStore()
                     }
 
                     DetailScreens.UserName -> {

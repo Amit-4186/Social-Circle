@@ -1,5 +1,6 @@
 package com.example.socialcircle.navigation
 
+import UsernameScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -15,21 +16,30 @@ import com.example.socialcircle.screens.LoadingScreen
 import com.example.socialcircle.screens.LoginScreen
 import com.example.socialcircle.screens.ProfileSetupScreen
 import com.example.socialcircle.screens.VerificationScreen
+import com.example.socialcircle.screens.profileSetup.DateOfBirthScreen
+import com.example.socialcircle.screens.profileSetup.GetContactScreen
+import com.example.socialcircle.screens.profileSetup.NameScreen
+import com.example.socialcircle.screens.profileSetup.ProfilePictureScreen
 import com.example.socialcircle.viewModels.AuthenticationViewModel
+import com.example.socialcircle.viewModels.ProfileSetupViewModel
 
 sealed class AppScreens(val route: String) {
     object Login : AppScreens("login")
     object Verification : AppScreens("verification")
     object ForgotPassword : AppScreens("forgotPassword")
-    object ProfileSetup : AppScreens(route = "profileSetup")
+    object ProfileSetup : AppScreens(route = "getName")
     object RootNav : AppScreens("rootNav")
+    object GetDob: AppScreens("getDob")
+    object GetPhoneNo: AppScreens("getPhoneNo")
+    object GetProfilePic: AppScreens("getProfilePic")
+    object GetUserName: AppScreens("getUserName")
 }
 
 @Composable
 fun AppNavigation() {
     val appNav = rememberNavController()
     val authViewModel: AuthenticationViewModel = viewModel()
-
+    val profileSetupViewModel: ProfileSetupViewModel = viewModel()
     val isLogin by remember { mutableStateOf(authViewModel.user != null) }
     val isVerified by remember { mutableStateOf(authViewModel.user?.isEmailVerified ?: false) }
     val userExists by authViewModel.uidExistsState.collectAsState()
@@ -67,8 +77,24 @@ fun AppNavigation() {
                     ForgotPasswordScreen(authViewModel, appNav)
                 }
 
-                composable(AppScreens.ProfileSetup.route) {
-                    ProfileSetupScreen(appNav)
+                composable(AppScreens.ProfileSetup.route){
+                    NameScreen(profileSetupViewModel, appNav)
+                }
+
+                composable(AppScreens.GetDob.route){
+                    DateOfBirthScreen(profileSetupViewModel, appNav)
+                }
+
+                composable(AppScreens.GetPhoneNo.route){
+                    GetContactScreen(profileSetupViewModel, appNav)
+                }
+
+                composable(AppScreens.GetProfilePic.route){
+                    ProfilePictureScreen(profileSetupViewModel, appNav)
+                }
+
+                composable(AppScreens.GetUserName.route){
+                    UsernameScreen(profileSetupViewModel, appNav)
                 }
 
                 composable(AppScreens.RootNav.route) {
